@@ -1,0 +1,77 @@
+Project  Sports_Tickets_Reservation_system {
+  database_type: 'PostgreSQL'
+  Note: ''' # NoteはREADMEのような扱いです。マークダウンの記載ができます
+    ## ProjectName
+    ### 参考情報
+    - [テーブル設計情報](https://demo.com)
+  '''
+}
+
+Enum tickets_status {
+    available
+    reserved
+    sold
+}
+
+Enum reservation_status {
+    pending
+    confirmed
+    canceled
+    expired
+}
+
+Table Users {
+    Note: 'ユーザー情報管理'
+    id uuid [primary key, not null, note: 'ユーザID']
+    username varchar(20)
+    email varchar(50) [unique, not null, note: 'メールアドレス']
+    password_hash text [not null, note: 'ハッシュ化されたパスワード']
+}
+Table Teams {
+    Note: 'チームの情報'
+    id uuid [primary key, not null, note: 'チームIiceD']
+    name varchar(20) [not null, note: 'チーム名']
+}
+
+Table Games{
+    Note: '試合の詳細'
+    id uuid [primary key, not null, note: '各試合に割り当てられたid']
+    home_team_id uuid [not null, note: 'ホームのチームのID', ref: > Teams.id]
+    away_team_id uuid [not null, ref: > Teams.id]
+    game_date datetime
+    start_time datetime
+    venue varchar(30)
+}
+
+Table Seats{
+    Note: '座席テーブル'
+    id uuid [primary key, note: 'シートごとのID']
+    grade VARCHAR(5)
+    price integer
+}
+
+Table Tickets{
+    Note: 'チケットテーブル'
+    id uuid [primary key, not null]
+    seat_id uuid [ref: > Seats.id]
+    game_id uuid [ref: > Games.id]
+    reservation_id uuid [null, ref: > Reservations.id]
+    price integer
+    status tickets_status
+    created_at datetime
+    updated_at datetime
+
+    Indexes {
+        (seat_id, game_id) [unique]
+    }
+}
+
+Table Reservations{
+    id uuid [primary key, not null]
+    user_id uuid [ref: > Users.id]
+    game_id uuid [ref: > Games.id]
+    status reservation_status
+    expires_at datetime
+    created_at datetime
+    updated_at datetime
+}

@@ -1,0 +1,7 @@
+エンティティ - 属性
+User 　　- id, username, email. password_hash
+チーム　　- id, name
+試合　　　- id, home_team_id, away_team_id, game_date, start_time, venue
+チケット　- id, seat_id, reservation_id(nullable), price, status, created_at, update_dat
+座席　　　- id, game_id, grade, pricce
+予約　　　- id, user_id, game_id, status, expires_at, created_at, updated_at

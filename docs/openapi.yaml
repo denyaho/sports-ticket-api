@@ -1,0 +1,452 @@
+openapi: 3.0.3
+info:
+  title: 42Tokyo Road to DeNA API
+  version: 0.1.0
+  description: |
+    このAPIは学習用途のチケット予約システムを題材にしています。
+    認証はCookieのJWT/Refresh Token、もしくはAuthorizationヘッダのBearerをサポートします。
+servers:
+  - url: http://localhost:8080
+    description: ローカル開発環境
+tags:
+  - name: Health
+    description: ヘルスチェック関連
+  - name: Auth
+    description: 認証・ユーザー管理
+  - name: Games
+    description: 試合情報の取得
+  - name: Reservations
+    description: 予約管理
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: ヘルスチェック
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: integer
+                    format: int64
+  /api/user/signup:
+    post:
+      tags:
+        - Auth
+      summary: ユーザー登録（トークン発行）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokensResponse'
+  /api/user/login:
+    post:
+      tags:
+        - Auth
+      summary: ログイン（トークン発行）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokensResponse'
+  /api/user/refresh:
+    post:
+      tags:
+        - Auth
+      summary: リフレッシュトークンの回転
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokensResponse'
+  /api/user/me:
+    get:
+      tags:
+        - Auth
+      summary: 認証済みユーザーの情報取得
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+  /api/games:
+    get:
+      tags:
+        - Games
+      summary: 試合一覧取得
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GameResponse'
+  /api/games/{id}:
+    get:
+      tags:
+        - Games
+      summary: 試合詳細取得
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameResponse'
+        '404':
+          description: Not Found
+  /api/games/{id}/seats:
+    get:
+      tags:
+        - Games
+      summary: 試合の座席空き状況取得
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SeatAvailabilityResponse'
+  /api/reservations:
+    post:
+      tags:
+        - Reservations
+      summary: 仮予約作成
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReservationRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '401':
+          description: Unauthorized
+    get:
+      tags:
+        - Reservations
+      summary: ユーザーの予約一覧取得
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReservationResponse'
+        '401':
+          description: Unauthorized
+  /api/reservations/{id}:
+    get:
+      tags:
+        - Reservations
+      summary: 予約詳細取得
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not Found
+    delete:
+      tags:
+        - Reservations
+      summary: 予約キャンセル
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+  /api/reservations/{id}/purchase:
+    put:
+      tags:
+        - Reservations
+      summary: 予約の購入確定
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            $ref: '#/components/schemas/UUID'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationResponse'
+        '401':
+          description: Unauthorized
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+  schemas:
+    TicketStatus:
+      type: string
+      enum: [available, reserved, sold]
+    ReservationStatus:
+      type: string
+      enum: [pending, confirmed, cancelled, expired]
+    UUID:
+      type: string
+      format: uuid
+      example: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    UserResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+      required: [id]
+    CreateUserRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    UpdateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+    SignupRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    AuthLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    RefreshRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+    AuthTokensResponse:
+      type: object
+      properties:
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+    TeamResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+    GameResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        game_date:
+          type: string
+          format: date-time
+        start_time:
+          type: string
+          format: date-time
+        home_team:
+          $ref: '#/components/schemas/TeamResponse'
+        away_team:
+          $ref: '#/components/schemas/TeamResponse'
+    SeatAvailabilityResponse:
+      type: object
+      properties:
+        seat_grade:
+          type: string
+        price:
+          type: integer
+        total_seats:
+          type: integer
+        available_seats:
+          type: integer
+        reserved_seats:
+          type: integer
+        sold_seats:
+          type: integer
+    TicketResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        seat_id:
+          $ref: '#/components/schemas/UUID'
+        price:
+          type: integer
+        status:
+          $ref: '#/components/schemas/TicketStatus'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ReservationResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        game_id:
+          $ref: '#/components/schemas/UUID'
+        status:
+          $ref: '#/components/schemas/ReservationStatus'
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        tickets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketResponse'
+    CreateReservationRequest:
+      type: object
+      required: [game_id, seats]
+      properties:
+        game_id:
+          $ref: '#/components/schemas/UUID'
+        seats:
+          type: array
+          items:
+            type: object
+            required: [seat_grade, quantity]
+            properties:
+              seat_grade:
+                type: string
+              quantity:
+                type: integer
+
