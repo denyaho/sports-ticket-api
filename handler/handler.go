@@ -23,6 +23,7 @@ func (h *Handler) Routes() http.Handler {
 
 	// ルーティング
 	mux.HandleFunc("GET /health", h.HealthCheck)
+	mux.HandleFunc("POST /api/user/signup", h.UsrSignup)
 
 	// Swagger/OpenAPI 配信
 	mux.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) {

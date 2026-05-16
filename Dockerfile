@@ -1,4 +1,4 @@
-FROM --platform=linux/arm64 golang:1.24.5-alpine
+FROM golang:1.24.5-alpine
 
 # Install air
 RUN apk add --update --no-cache ca-certificates git && \
