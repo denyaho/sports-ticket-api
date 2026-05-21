@@ -41,12 +41,6 @@ type AuthLoginRequest struct {
 	Password string `json:"password"`
 }
 
-type SignupRequest struct {
-	Name     string `json:"name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token,omitempty"`
 }

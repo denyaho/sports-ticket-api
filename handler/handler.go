@@ -7,15 +7,19 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"42tokyo-road-to-dena-server/repository"
 )
 
-func New() *Handler {
-	return &Handler{}
+func New(userRepo *repository.UserRepository) *Handler {
+	return &Handler{
+		userRepository: userRepo,
+	}
 }
 
 type Handler struct {
 	authBundleService *authbundle.AuthBundle
-	authConfig        *authbundle.AuthConfig
+	authConfig        *authbundle.AuthConfig	
+	userRepository	 *repository.UserRepository
 }
 
 func (h *Handler) Routes() http.Handler {
@@ -23,7 +27,7 @@ func (h *Handler) Routes() http.Handler {
 
 	// ルーティング
 	mux.HandleFunc("GET /health", h.HealthCheck)
-	mux.HandleFunc("POST /api/user/signup", h.UsrSignup)
+	mux.HandleFunc("POST /api/user/signup", h.UserSignup)
 
 	// Swagger/OpenAPI 配信
 	mux.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) {

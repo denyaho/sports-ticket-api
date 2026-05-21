@@ -11,6 +11,9 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"database/sql"
+	"42tokyo-road-to-dena-server/repository"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -19,9 +22,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+	//DB接続の初期化
+	dbDriver := "postgres"
+	DBcfg := cfg.Database
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",DBcfg.Host, DBcfg.Port, DBcfg.User, DBcfg.Password, DBcfg.Name)
 
+	db, err := sql.Open(dbDriver, dsn)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer db.Close()
 	// ハンドラーの初期化
-	h := handler.New()
+	userRepo := repository.NewUserRepository(db)
+	h := handler.New(userRepo)
 
 	// HTTPサーバーの設定
 	srv := &http.Server{
