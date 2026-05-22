@@ -2,7 +2,7 @@ package main
 
 import (
 	"42tokyo-road-to-dena-server/config"
-	"42tokyo-road-to-dena-server/handler"
+	"42tokyo-road-to-dena-server/internal/handler"
 	"context"
 	"fmt"
 	"log"
@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 	"database/sql"
-	"42tokyo-road-to-dena-server/repository"
+	"42tokyo-road-to-dena-server/internal/repository"
 	_ "github.com/lib/pq"
 )
 
