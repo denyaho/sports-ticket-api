@@ -361,6 +361,18 @@ func SetAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, cfg
 	})
 }
 
+func ReadAuthCookies(w http.ResponseWriter, r *http.Request) (string, string) {
+	accessToken, err := r.Cookie("access_token")
+	if err != nil {
+		accessToken = &http.Cookie{}
+	}
+	refreshToken, err := r.Cookie("refresh_token")
+	if err != nil {
+		refreshToken = &http.Cookie{}
+	}
+	return accessToken.Value, refreshToken.Value
+}
+
 // コンテキストからユーザーIDを取得
 func GetUserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	userID, ok := ctx.Value(UserIDKey).(uuid.UUID)

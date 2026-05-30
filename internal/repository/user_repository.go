@@ -1,13 +1,11 @@
 package repository
 
 import (
-	"fmt"
 	"database/sql"
 	"github.com/google/uuid"
 	"context"
 	"42tokyo-road-to-dena-server/internal/domain"
 	"github.com/lib/pq"
-	"net/http"
 	"errors"
 )
 
@@ -17,7 +15,7 @@ var ErrDatabase = errors.New("database error")
 var ErrUserNotCreated = errors.New("failed to create user")
 
 type UserRepository interface {
-	CreateUser(ctx context.Context, *domain.User) (uuid.UUID, error)
+	CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
 }
 

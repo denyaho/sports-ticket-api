@@ -2,24 +2,28 @@ package handler
 
 import (
 	"42tokyo-road-to-dena-server/authbundle"
+	"42tokyo-road-to-dena-server/internal/service"
 	"encoding/json"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-	"42tokyo-road-to-dena-server/repository"
 )
 
-func New(userRepo *repository.UserRepository) *Handler {
+func New(authbundle *authbundle.AuthBundle,
+	authConfig *authbundle.AuthConfig,
+	userservice service.UserService) *Handler {
 	return &Handler{
-		userRepository: userRepo,
+		authBundleService: authbundle,
+		authConfig:        authConfig,
+		userservice:       userservice,
 	}
 }
 
 type Handler struct {
 	authBundleService *authbundle.AuthBundle
 	authConfig        *authbundle.AuthConfig	
-	userRepository	 *repository.UserRepository
+	userservice service.UserService
 }
 
 func (h *Handler) Routes() http.Handler {
@@ -27,7 +31,8 @@ func (h *Handler) Routes() http.Handler {
 
 	// ルーティング
 	mux.HandleFunc("GET /health", h.HealthCheck)
-	mux.HandleFunc("POST /api/user/signup", h.UserSignup)
+	mux.HandleFunc("POST /api/user/signup", h.HandleUserSignup)
+	mux.HandleFunc("GET /api/user/me", h.HandleGetUser)
 
 	// Swagger/OpenAPI 配信
 	mux.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) {

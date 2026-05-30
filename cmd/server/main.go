@@ -12,8 +12,11 @@ import (
 	"syscall"
 	"time"
 	"database/sql"
+	"github.com/jmoiron/sqlx"
 	"42tokyo-road-to-dena-server/internal/repository"
+	"42tokyo-road-to-dena-server/internal/service"
 	_ "github.com/lib/pq"
+	"42tokyo-road-to-dena-server/authbundle"
 )
 
 func main() {
@@ -27,15 +30,33 @@ func main() {
 	DBcfg := cfg.Database
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",DBcfg.Host, DBcfg.Port, DBcfg.User, DBcfg.Password, DBcfg.Name)
 
+	authConfig := &authbundle.AuthConfig{
+		JWTSecret:  cfg.Auth.JWTSecret,
+		JWTIssuer:   cfg.Auth.JWTIssuer,
+		JWTAudience: cfg.Auth.JWTAudience,
+		AccessTTL: cfg.Auth.AccessTokenTTL,
+		RefreshTTL: cfg.Auth.RefreshTokenTTL,
+		CookieDomain: cfg.Auth.CookieDomain,
+		CookieSecure: cfg.Auth.CookieSecure,
+	}
+
 	db, err := sql.Open(dbDriver, dsn)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 	// ハンドラーの初期化
-	userRepo := repository.NewUserRepository(db)
-	h := handler.New(userRepo)
+	userrepo := repository.NewUserRepository(db)
+	userservice := service.NewUserService(userrepo)
 
+	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, dbDriver))
+	authbundle := authbundle.NewAuthBundle(authConfig, store)
+
+	h := handler.New(
+		authbundle,
+		authConfig,
+		userservice,
+	)
 	// HTTPサーバーの設定
 	srv := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", cfg.Server.Host, cfg.Server.Port),
