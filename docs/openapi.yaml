@@ -108,6 +108,10 @@ paths:
                 $ref: '#/components/schemas/UserResponse'
         '401':
           description: Unauthorized
+        '404':
+          description: User Not Found
+        '500':
+          description: Internal Server Error
   /api/games:
     get:
       tags:

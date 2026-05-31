@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"github.com/google/uuid"
 	"net/http"
 	"encoding/json"
 	"errors"
@@ -13,17 +12,13 @@ import (
 
 func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 	//リクエストに対する認証
-	
-
-	idStr := r.URL.Query().Get("id")
-	id, err := uuid.Parse(idStr)
-	if err != nil {
-		h.respondError(w, errors.New("invalid user ID"), http.StatusBadRequest)
+	userID, ok := authbundle.GetUserIDFromContext(r.Context())
+	if !ok {
+		h.respondError(w, authbundle.ErrUnauthorized, http.StatusUnauthorized)
 		return
 	}
 
-
-	user, err := h.userservice.FindUserByID(r.Context(), id)
+	userInfo, err := h.userservice.FindUserByID(r.Context(), userID)
 
 	if errors.Is(err, repository.ErrUserNotFound) {
 		h.respondError(w, err, http.StatusNotFound)
@@ -33,9 +28,13 @@ func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 		h.respondError(w, err, http.StatusInternalServerError)
 		return
 	}
-
+	response := map[string]string{
+		"user_id": userInfo.ID.String(),
+		"username": userInfo.Username,
+		"email": userInfo.Email,
+	}
 	w.Header().Set("Content-Type", "application/json")
-	h.respondJSON(w, user, http.StatusOK)
+	h.respondJSON(w, response, http.StatusOK)
 }
 
 type SignupRequest struct {

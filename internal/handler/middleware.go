@@ -12,16 +12,18 @@ func (h *Handler) AuthRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := h.extractTokenFromRequest(r)
 
+		// トークンがない場合は認証エラー
 		if token == "" {
 			h.respondError(w, authbundle.ErrUnauthorized, http.StatusUnauthorized)
 			return
 		}
-
+		// トークンを検証し、claims から userID を取得
 		if h.authBundleService == nil {
 			h.respondError(w, authbundle.ErrUnauthorized, http.StatusUnauthorized)
 			return
 		}
 
+		// トークンを検証し、claims から userID を取得
 		claims, err := h.authBundleService.ValidateAccessToken(token)
 		if err != nil {
 			h.respondError(w, authbundle.ErrUnauthorized, http.StatusUnauthorized)
