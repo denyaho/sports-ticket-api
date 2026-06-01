@@ -12,11 +12,13 @@ import (
 
 func New(authbundle *authbundle.AuthBundle,
 	authConfig *authbundle.AuthConfig,
-	userservice service.UserService) *Handler {
+	userservice service.UserService,
+	gameService service.GameService) *Handler {
 	return &Handler{
 		authBundleService: authbundle,
 		authConfig:        authConfig,
 		userservice:       userservice,
+		gameService:		gameService,
 	}
 }
 
@@ -24,6 +26,7 @@ type Handler struct {
 	authBundleService *authbundle.AuthBundle
 	authConfig        *authbundle.AuthConfig	
 	userservice service.UserService
+	gameService service.GameService
 }
 
 func (h *Handler) Routes() http.Handler {
@@ -35,7 +38,8 @@ func (h *Handler) Routes() http.Handler {
 	// 認証が必要なルートはミドルウェアで保護
 	mux.Handle("GET /api/user/me", h.AuthRequired(http.HandlerFunc(h.HandleGetUser)))
 
-	mux.HnandleFunc("GET /api/games")
+	mux.HandleFunc("GET /api/games", h.HandleGetAllGames)
+	mux.HandleFunc("GET /api/games/{id}", h.HandleGetGameByID)
 
 	// Swagger/OpenAPI 配信
 	mux.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) {

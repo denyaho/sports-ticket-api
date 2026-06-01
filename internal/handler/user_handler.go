@@ -33,7 +33,6 @@ func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 		"username": userInfo.Username,
 		"email": userInfo.Email,
 	}
-	w.Header().Set("Content-Type", "application/json")
 	h.respondJSON(w, response, http.StatusOK)
 }
 

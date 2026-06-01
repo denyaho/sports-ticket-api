@@ -1,13 +1,13 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
-type Games struct {
-	ID uuid.UUID
-	home_team_id uuid.UUID
-	away_team_id uuid.UUID
-	game_date time.Time
-	start_time time.Time
-	venue string
-
+type Game struct {
+	ID uuid.UUID `json:"id"`
+	HomeTeamID uuid.UUID `json:"home_team_id"`
+	AwayTeamID uuid.UUID `json:"away_team_id"`
+	GameDate string `json:"game_date"`
+	StartTime string `json:"start_time"`
 }
