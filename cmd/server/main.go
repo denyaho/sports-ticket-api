@@ -52,6 +52,9 @@ func main() {
 	gamerepo := repository.NewGameRepository(db)
 	gameService := service.NewGameService(gamerepo)
 
+	seatsrepo := repository.NewSeatsRepository(db)
+	seatsService := service.NewSeatsService(seatsrepo)
+
 	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, dbDriver))
 	authbundle := authbundle.NewAuthBundle(authConfig, store)
 
@@ -60,6 +63,7 @@ func main() {
 		authConfig,
 		userservice,
 		gameService,
+		seatsService,
 	)
 	// HTTPサーバーの設定
 	srv := &http.Server{

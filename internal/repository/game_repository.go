@@ -24,7 +24,12 @@ func NewGameRepository(db *sql.DB) GameRepository {
 
 func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game, error) {
 
-	query := "SELECT id, game_date, start_time, home_team_id, away_team_id FROM games"
+	query := `SELECT g.id, g.game_date, g.start_time,
+	home.id AS home_team_id, home.name AS home_team_name,
+	away.id AS away_team_id, away.name AS away_team_name
+	FROM games g
+	JOIN teams home ON g.home_team_id = home.id
+	JOIN teams away ON g.away_team_id = away.id`
 
 	games := []domain.Game{}
 
@@ -36,7 +41,10 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 
 	var game domain.Game
 	for rows.Next() {
-		err := rows.Scan(&game.ID, &game.GameDate, &game.StartTime, &game.HomeTeamID, &game.AwayTeamID)
+		err := rows.Scan(
+			&game.ID, &game.GameDate, &game.StartTime,
+			&game.HomeTeam.ID, &game.HomeTeam.Name,
+			&game.AwayTeam.ID, &game.AwayTeam.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -49,10 +57,20 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 }
 
 func (r *postgreGamesRepository) GetGameByID(ctx context.Context, id string) (*domain.Game, error) {
-	query := "SELECT id, game_date, start_time, home_team_id, away_team_id FROM games WHERE id = $1"
+
+	query := `SELECT g.id, g.game_date, g.start_time,
+	home.id AS home_team_id, home.name AS home_team_name,
+	away.id AS away_team_id, away.name AS away_team_name
+	FROM games g
+	JOIN teams home ON g.home_team_id = home.id
+	JOIN teams away ON g.away_team_id = away.id
+	WHERE g.id = $1`
 
 	var game domain.Game
-	if err := r.DB.QueryRowContext(ctx, query, id).Scan(&game.ID, &game.GameDate, &game.StartTime, &game.HomeTeamID, &game.AwayTeamID); err != nil {
+	if err := r.DB.QueryRowContext(ctx, query, id).Scan(
+		&game.ID, &game.GameDate, &game.StartTime,
+		&game.HomeTeam.ID, &game.HomeTeam.Name,
+		&game.AwayTeam.ID, &game.AwayTeam.Name); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNotFound
 		}

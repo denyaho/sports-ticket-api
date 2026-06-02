@@ -13,12 +13,14 @@ import (
 func New(authbundle *authbundle.AuthBundle,
 	authConfig *authbundle.AuthConfig,
 	userservice service.UserService,
-	gameService service.GameService) *Handler {
+	gameService service.GameService,
+	seatsService service.SeatsService) *Handler {
 	return &Handler{
 		authBundleService: authbundle,
 		authConfig:        authConfig,
 		userservice:       userservice,
 		gameService:		gameService,
+		seatsService:      seatsService,
 	}
 }
 
@@ -27,6 +29,7 @@ type Handler struct {
 	authConfig        *authbundle.AuthConfig	
 	userservice service.UserService
 	gameService service.GameService
+	seatsService service.SeatsService
 }
 
 func (h *Handler) Routes() http.Handler {
@@ -40,6 +43,10 @@ func (h *Handler) Routes() http.Handler {
 
 	mux.HandleFunc("GET /api/games", h.HandleGetAllGames)
 	mux.HandleFunc("GET /api/games/{id}", h.HandleGetGameByID)
+
+	mux.HandleFunc("GET /api/games/{id}/seats", h.HandleGetSeatsByGameID)
+
+	mux.HandleFunc("POST /api/reservations", h.HandleCreateReservation)
 
 	// Swagger/OpenAPI 配信
 	mux.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
