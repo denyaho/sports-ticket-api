@@ -46,7 +46,7 @@ func (h *Handler) Routes() http.Handler {
 
 	mux.HandleFunc("GET /api/games/{id}/seats", h.HandleGetSeatsByGameID)
 
-	mux.HandleFunc("POST /api/reservations", h.HandleCreateReservation)
+	mux.Handle("POST /api/reservations", h.AuthRequired(http.HandlerFunc(h.HandleCreateReservation)))
 
 	// Swagger/OpenAPI 配信
 	mux.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) {

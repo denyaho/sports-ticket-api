@@ -1,0 +1,9 @@
+Goのトランザクション処理について
+
+https://go.dev/doc/database/execute-transactions
+
+PostgreSQLのトランザクション処理について
+https://www.postgresqlinternals.org/chapter2/
+
+ロストアップデートについて
+https://rabiloo.co.jp/blog/lost-update
