@@ -6,16 +6,14 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
-
+	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/crypto/bcrypt"
-)
+	"golang.org/x/crypto/bcrypt")
 
 // エラー定数
 var (
@@ -328,11 +326,7 @@ func HashPassword(password string) (string, error) {
 	return string(hashedBytes), nil
 }
 
-// パスワード検証
-func CheckPassword(password, hashedPassword string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	return err == nil
-}
+
 
 // Cookie設定
 func SetAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, cfg *AuthConfig) {

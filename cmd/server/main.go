@@ -55,6 +55,25 @@ func main() {
 	seatsrepo := repository.NewSeatsRepository(db)
 	seatsService := service.NewSeatsService(seatsrepo)
 
+	reservationRepo := repository.NewReservationRepository(db)
+	reservationService := service.NewReservationService(reservationRepo)
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		ctx := context.Background()
+		for {
+			select {
+				case <-ticker.C:
+					if err := reservationRepo.CheckExpiredReservations(ctx); err != nil {
+						log.Printf("Error checking expired reservations: %v", err)
+					}
+				case <-ctx.Done():
+					return
+			}
+		}
+	}()
+
 	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, dbDriver))
 	authbundle := authbundle.NewAuthBundle(authConfig, store)
 
@@ -64,6 +83,7 @@ func main() {
 		userservice,
 		gameService,
 		seatsService,
+		reservationService,
 	)
 	// HTTPサーバーの設定
 	srv := &http.Server{
@@ -73,6 +93,7 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+
 
 	// サーバーの起動（非同期）
 	go func() {

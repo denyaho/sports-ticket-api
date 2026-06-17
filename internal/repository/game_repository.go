@@ -4,14 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"42tokyo-road-to-dena-server/internal/domain"
+	"42tokyo-road-to-dena-server/internal/apperror"
+	"fmt"
 	"errors"
+	"github.com/google/uuid"	
 )
 
 var ErrNotFound = errors.New("Not found")
 
 type GameRepository interface {
 	GetAllGames(ctx context.Context) ([]domain.Game, error)
-	GetGameByID(ctx context.Context, id string) (*domain.Game, error)
+	GetGameByID(ctx context.Context, id uuid.UUID) (*domain.Game, error)
 }
 
 type postgreGamesRepository struct {
@@ -35,28 +38,28 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 
 	rows, err := r.DB.QueryContext(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("query execution error: %w", err)
 	}
 	defer rows.Close()
 
-	var game domain.Game
 	for rows.Next() {
+		var game domain.Game
 		err := rows.Scan(
 			&game.ID, &game.GameDate, &game.StartTime,
 			&game.HomeTeam.ID, &game.HomeTeam.Name,
 			&game.AwayTeam.ID, &game.AwayTeam.Name)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("row scan error: %w", err)
 		}
 		games = append(games, game)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("rows iteration error: %w", err)
 	}
 	return games, nil
 }
 
-func (r *postgreGamesRepository) GetGameByID(ctx context.Context, id string) (*domain.Game, error) {
+func (r *postgreGamesRepository) GetGameByID(ctx context.Context, id uuid.UUID) (*domain.Game, error) {
 
 	query := `SELECT g.id, g.game_date, g.start_time,
 	home.id AS home_team_id, home.name AS home_team_name,
@@ -72,9 +75,9 @@ func (r *postgreGamesRepository) GetGameByID(ctx context.Context, id string) (*d
 		&game.HomeTeam.ID, &game.HomeTeam.Name,
 		&game.AwayTeam.ID, &game.AwayTeam.Name); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrNotFound
+			return nil, fmt.Errorf("game with ID %s not found: %w", id, apperror.ErrNotFound)
 		}
-		return nil, err
+		return nil, fmt.Errorf("query execution error: %w", err)
 	}
 	return &game, nil
 }

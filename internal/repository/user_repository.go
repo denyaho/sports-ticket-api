@@ -7,16 +7,14 @@ import (
 	"42tokyo-road-to-dena-server/internal/domain"
 	"github.com/lib/pq"
 	"errors"
+	"42tokyo-road-to-dena-server/internal/apperror"
 )
 
-var ErrDuplicateEmail = errors.New("email already exists")
-var ErrUserNotFound = errors.New("user not found")
-var ErrDatabase = errors.New("database error")
-var ErrUserNotCreated = errors.New("failed to create user")
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 }
 
 
@@ -38,12 +36,12 @@ func (r *postgreUserRepository) CreateUser(ctx context.Context, user *domain.Use
 		if errors.As(err, &pqErr) {
 			switch pqErr.Code {
 				case "23505":
-					return uuid.Nil, ErrDuplicateEmail
+					return uuid.Nil, apperror.ErrDuplicateEmail
 				default:
-					return uuid.Nil, ErrDatabase
+					return uuid.Nil, apperror.ErrDatabase
 			}
 		}
-		return uuid.Nil, ErrUserNotCreated
+		return uuid.Nil, apperror.ErrUserNotCreated
 	}
 	return id, nil
 }
@@ -54,9 +52,22 @@ func (r *postgreUserRepository) FindUserByID(ctx context.Context, id uuid.UUID) 
 	var user domain.User
 	if err := r.DB.QueryRowContext(ctx, query, id).Scan(&user.ID, &user.Username, &user.Email, &user.Password); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrUserNotFound
+			return nil, apperror.ErrUserNotFound
 		}
-		return nil, ErrDatabase
+		return nil, apperror.ErrDatabase
+	}
+	return &user, nil
+}
+
+func (r *postgreUserRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	query := `SELECT id, password_hash FROM users WHERE email = $1`
+
+	var user domain.User
+	if err := r.DB.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Password); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperror.ErrUserNotFound
+		}
+		return nil, apperror.ErrDatabase
 	}
 	return &user, nil
 }

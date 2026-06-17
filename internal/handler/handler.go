@@ -14,13 +14,15 @@ func New(authbundle *authbundle.AuthBundle,
 	authConfig *authbundle.AuthConfig,
 	userservice service.UserService,
 	gameService service.GameService,
-	seatsService service.SeatsService) *Handler {
+	seatsService service.SeatsService,
+	reservationService service.ReservationService) *Handler {
 	return &Handler{
 		authBundleService: authbundle,
 		authConfig:        authConfig,
 		userservice:       userservice,
 		gameService:		gameService,
 		seatsService:      seatsService,
+		reservationService: reservationService,
 	}
 }
 
@@ -30,6 +32,7 @@ type Handler struct {
 	userservice service.UserService
 	gameService service.GameService
 	seatsService service.SeatsService
+	reservationService service.ReservationService
 }
 
 func (h *Handler) Routes() http.Handler {
@@ -38,6 +41,7 @@ func (h *Handler) Routes() http.Handler {
 	// ルーティング
 	mux.HandleFunc("GET /health", h.HealthCheck)
 	mux.HandleFunc("POST /api/user/signup", h.HandleUserSignup)
+	mux.HandleFunc("POST /api/user/login", h.HandleUserLogin)
 	// 認証が必要なルートはミドルウェアで保護
 	mux.Handle("GET /api/user/me", h.AuthRequired(http.HandlerFunc(h.HandleGetUser)))
 
@@ -46,7 +50,15 @@ func (h *Handler) Routes() http.Handler {
 
 	mux.HandleFunc("GET /api/games/{id}/seats", h.HandleGetSeatsByGameID)
 
+
 	mux.Handle("POST /api/reservations", h.AuthRequired(http.HandlerFunc(h.HandleCreateReservation)))
+
+	mux.Handle("GET /api/reservations", h.AuthRequired(http.HandlerFunc(h.HandleGetUserReservations)))
+
+	mux.Handle("GET /api/reservations/{id}", h.AuthRequired(http.HandlerFunc(h.HandleGetReservationByID)))
+
+	mux.Handle("PUT /api/reservations/{id}/purchase", h.AuthRequired(http.HandlerFunc(h.HandlePurchaseReservation)))
+
 
 	// Swagger/OpenAPI 配信
 	mux.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) {

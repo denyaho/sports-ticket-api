@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/google/uuid"
 	"42tokyo-road-to-dena-server/internal/domain"
 )
 
 type SeatsRepository interface {
-	GetSeatsByGameID(ctx context.Context, gameID string) ([]domain.Seat, error)
+	GetSeatsByGameID(ctx context.Context, gameID uuid.UUID) ([]domain.Seat, error)
 }
 
 type postgreSeatsRepository struct {
@@ -19,7 +20,7 @@ func NewSeatsRepository(db *sql.DB) SeatsRepository {
 	return &postgreSeatsRepository{DB: db}
 }
 
-func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID string) ([]domain.Seat, error) {
+func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID uuid.UUID) ([]domain.Seat, error) {
 
 	query := `SELECT 
 	seats.grade, seats.price,
@@ -48,6 +49,9 @@ func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID st
 			return nil, fmt.Errorf("failed to scan seat: %w", err)
 		}
 		seats = append(seats, seat)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
 	}
 	return seats, nil
 }
