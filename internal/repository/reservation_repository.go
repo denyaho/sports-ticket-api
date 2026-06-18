@@ -27,6 +27,16 @@ func NewReservationRepository(db *sql.DB) ReservationRepository {
 	return &reservationRepository{DB: db}
 }
 
+func (r *reservationRepository) CancelReservation(ctx context.Context, reservationID, userID uuid.UUID) error {
+
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error starting transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	
+}
 
 func (r *reservationRepository) CheckExpiredReservations(ctx context.Context) error {
 

@@ -9,6 +9,26 @@ import (
 	"github.com/google/uuid"
 )
 
+func (h *Handler) HandleCancelReservation(w http.ResponseWriter, r *http.Request) {
+
+	userID, ok := authbundle.GetUserIDFromContext(r.Context())
+	if !ok {
+		h.handleError(w, authbundle.ErrUnauthorized)
+		return
+	}
+
+	ctx := r.Context()
+
+	id := r.PathValue("id")
+	reservationID, err := uuid.Parse(id)
+	if err != nil {
+		h.handleError(w, apperror.ErrBadRequest)
+		return
+	}
+
+	
+}
+
 func (h *Handler) HandleCreateReservation(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := authbundle.GetUserIDFromContext(r.Context())

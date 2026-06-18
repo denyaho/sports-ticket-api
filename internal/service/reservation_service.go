@@ -13,7 +13,8 @@ type ReservationService interface {
 	GetUserReservations(ctx context.Context, userID uuid.UUID) ([]*domain.Reservation, error)
 	GetReservationByID(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error)
 	PurchaseReservation(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error)
-
+	CancelReservation(ctx context.Context, reservationID, userID uuid.UUID) error
+	CheckExpiredReservations(ctx context.Context) error
 }
 
 type reservationService struct {
@@ -26,6 +27,9 @@ func NewReservationService(repo repository.ReservationRepository) ReservationSer
 
 func (s *reservationService) CheckExpiredReservations(ctx context.Context) error {
 	return s.repo.CheckExpiredReservations(ctx)
+}
+
+func (s *reservationService) CancelReservation(ctx context.Context, reservationID, userID uuid.UUID) error {
 }
 
 func (s *reservationService) CreateReservation(ctx context.Context, reqBody *domain.ReservationRequest, userID uuid.UUID) (*domain.Reservation, error) {

@@ -59,6 +59,8 @@ func (h *Handler) Routes() http.Handler {
 
 	mux.Handle("PUT /api/reservations/{id}/purchase", h.AuthRequired(http.HandlerFunc(h.HandlePurchaseReservation)))
 
+	mux.Handle("DELETE /api/reservations/{id}", h.AuthRequired(http.HandlerFunc(h.HandleCancelReservation)))
+
 
 	// Swagger/OpenAPI 配信
 	mux.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
