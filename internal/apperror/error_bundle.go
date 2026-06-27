@@ -20,7 +20,9 @@ var (
 	ErrUserNotCreated = errors.New("failed to create user")
 	ErrAuthenticationFailed = errors.New("authentication failed")
 	ErrInvalidInput = errors.New("invalid input")
-	ErrInternal = errors.New("internal server error")
+
 	ErrReservationConflict = errors.New("reservation conflict")
 	ErrBadRequest = errors.New("bad request")
+	ErrReservationNotPending = errors.New("reservation is not pending")
+	
 )

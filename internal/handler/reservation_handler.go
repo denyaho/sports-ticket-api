@@ -13,7 +13,7 @@ func (h *Handler) HandleCancelReservation(w http.ResponseWriter, r *http.Request
 
 	userID, ok := authbundle.GetUserIDFromContext(r.Context())
 	if !ok {
-		h.handleError(w, authbundle.ErrUnauthorized)
+		h.handleError(w, apperror.ErrUnauthorized)
 		return
 	}
 
@@ -26,14 +26,19 @@ func (h *Handler) HandleCancelReservation(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	
+	err = h.reservationService.CancelReservation(ctx, reservationID, userID)
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+	h.respondJSON(w, nil, http.StatusNoContent)
 }
 
 func (h *Handler) HandleCreateReservation(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := authbundle.GetUserIDFromContext(r.Context())
 	if !ok {
-		h.handleError(w, authbundle.ErrUnauthorized)
+		h.handleError(w, apperror.ErrUnauthorized)
 		return
 	}
 
@@ -43,11 +48,12 @@ func (h *Handler) HandleCreateReservation(w http.ResponseWriter, r *http.Request
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&reqBody); err != nil {
-		h.handleError(w, err)
+		h.handleError(w, apperror.ErrBadRequest)
 		return
 	}
 
-	reservation_response,err := h.reservationService.CreateReservation(ctx, &reqBody, userID)
+	reservation_response, err := h.reservationService.CreateReservation(ctx, &reqBody, userID)
+
 	if err != nil {
 		h.handleError(w, err)
 		return
@@ -60,7 +66,7 @@ func (h *Handler) HandleGetUserReservations(w http.ResponseWriter, r *http.Reque
 	userID, ok := authbundle.GetUserIDFromContext(r.Context())
 
 	if !ok {
-		h.handleError(w, authbundle.ErrUnauthorized)
+		h.handleError(w, apperror.ErrUnauthorized)
 		return
 	}
 	

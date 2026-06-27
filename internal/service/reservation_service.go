@@ -30,6 +30,7 @@ func (s *reservationService) CheckExpiredReservations(ctx context.Context) error
 }
 
 func (s *reservationService) CancelReservation(ctx context.Context, reservationID, userID uuid.UUID) error {
+	return s.repo.CancelReservation(ctx, reservationID, userID)
 }
 
 func (s *reservationService) CreateReservation(ctx context.Context, reqBody *domain.ReservationRequest, userID uuid.UUID) (*domain.Reservation, error) {

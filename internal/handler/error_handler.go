@@ -35,6 +35,8 @@ func (h *Handler) handleError(w http.ResponseWriter, err error) {
 		h.respondError(w, err, http.StatusGone) // 410 Gone
 	case errors.Is(err, apperror.ErrReservationConflict):
 		h.respondError(w, err, http.StatusConflict) // 409 Conflict
+	case errors.Is(err, apperror.ErrReservationNotPending):
+		h.respondError(w, err, http.StatusBadRequest) // 400 Bad Request
 	case errors.Is(err, apperror.ErrBadRequest):
 		h.respondError(w, err, http.StatusBadRequest) // 400 Bad Request
 	default:
