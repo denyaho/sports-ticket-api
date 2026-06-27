@@ -83,7 +83,7 @@ func (h *Handler) HandleGetUserReservations(w http.ResponseWriter, r *http.Reque
 func (h *Handler) HandleGetReservationByID(w http.ResponseWriter, r *http.Request) {
 	userID, ok := authbundle.GetUserIDFromContext(r.Context())
 	if !ok {
-		h.handleError(w, authbundle.ErrUnauthorized)
+		h.handleError(w, apperror.ErrUnauthorized)
 		return
 	}
 	id := r.PathValue("id")
@@ -105,7 +105,7 @@ func (h *Handler) HandlePurchaseReservation(w http.ResponseWriter, r *http.Reque
 
 	userID, ok := authbundle.GetUserIDFromContext(r.Context())
 	if !ok {
-		h.handleError(w, authbundle.ErrUnauthorized)
+		h.handleError(w, apperror.ErrUnauthorized)
 		return
 	}
 	id := r.PathValue("id")

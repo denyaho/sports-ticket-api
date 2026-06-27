@@ -48,10 +48,14 @@ func (m *StubreservationService) CheckExpiredReservations(ctx context.Context) e
 
 
 
+var createContext = func() context.Context {
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, authbundle.UserIDKey, uuid.New())
+	return ctx
+}
 
 func TestHandleCancelReservation(t *testing.T) {
 
-	userID := uuid.MustParse("a7c3d0fe-6743-11f1-9249-523f294cde2a")
 	var reservationID = "f7f7dad8-84fd-4c10-9f95-d2a68d38a46f"
 
 	cancelTests := []struct {
@@ -63,22 +67,14 @@ func TestHandleCancelReservation(t *testing.T) {
 	}{
 		{
 			name: "success",
-			setupContext: func() context.Context {
-				ctx := context.Background()
-				ctx = context.WithValue(ctx, authbundle.UserIDKey, userID)
-				return ctx
-			},
+			setupContext: createContext,
 			reservationID: reservationID,
 			fakeErr: nil,
 			expectedStatus: http.StatusNoContent,
 		},
 		{
 			name: "not found",
-			setupContext: func() context.Context {
-				ctx := context.Background()
-				ctx = context.WithValue(ctx, authbundle.UserIDKey, userID)
-				return ctx
-			},
+			setupContext: createContext,
 			reservationID: reservationID,
 			fakeErr: apperror.ErrNotFound,
 			expectedStatus: http.StatusNotFound,
@@ -94,55 +90,35 @@ func TestHandleCancelReservation(t *testing.T) {
 		},
 		{
 			name: "internal server error",
-			setupContext: func() context.Context {
-				ctx := context.Background()
-				ctx = context.WithValue(ctx, authbundle.UserIDKey, userID)
-				return ctx
-			},
+			setupContext: createContext,
 			reservationID: reservationID,
 			fakeErr: apperror.ErrDatabase,
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
 			name: "bad request",
-			setupContext: func() context.Context {
-				ctx := context.Background()
-				ctx = context.WithValue(ctx, authbundle.UserIDKey, userID)
-				return ctx
-			},
+			setupContext: createContext,
 			reservationID: "invalid-uuid",
 			fakeErr: nil,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "reservation conflict",
-			setupContext: func() context.Context {
-				ctx := context.Background()
-				ctx = context.WithValue(ctx, authbundle.UserIDKey, userID)
-				return ctx
-			},
+			setupContext: createContext,
 			reservationID: reservationID,
 			fakeErr: apperror.ErrReservationConflict,
 			expectedStatus: http.StatusConflict,
 		},
 		{
 			name: "reservation not pending",
-			setupContext: func() context.Context {
-				ctx := context.Background()
-				ctx = context.WithValue(ctx, authbundle.UserIDKey, userID)
-				return ctx
-			},
+			setupContext: createContext,
 			reservationID: reservationID,
 			fakeErr: apperror.ErrReservationNotPending,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name: "reservation expired",
-			setupContext: func() context.Context {
-				ctx := context.Background()
-				ctx = context.WithValue(ctx, authbundle.UserIDKey, userID)
-				return ctx
-			},
+			setupContext: createContext,
 			reservationID: reservationID,
 			fakeErr: apperror.ErrReservationExpired,
 			expectedStatus: http.StatusGone,
@@ -167,15 +143,7 @@ func TestHandleCancelReservation(t *testing.T) {
 			assertStatus(t, response.Code, tt.expectedStatus)
 			})
 		}
-	}
-
-func assertStatus(t testing.TB, got, want int) {
-	t.Helper()
-	if got != want {
-		t.Errorf("did not get correct status, got %d, want %d", got, want)
-	}
 }
-
 
 func TestHandleCreateReservation(t *testing.T) {
 
@@ -190,11 +158,6 @@ func TestHandleCreateReservation(t *testing.T) {
 	}`
 	failReqBody := `"invalid-json"`
 
-	createContext := func() context.Context {
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, authbundle.UserIDKey, uuid.New())
-		return ctx
-	}
 
 	createTests := []struct {
 		name string
@@ -292,11 +255,6 @@ func TestHandleCreateReservation(t *testing.T) {
 func TestHandleGetUserReservations(t *testing.T) {
 
 
-	createContext := func() context.Context {
-		ctx := context.Background()
-		ctx = context.WithValue(ctx, authbundle.UserIDKey, uuid.New())
-		return ctx
-	}
 	getUserTests := []struct {
 		name string
 		setupContext func() context.Context
@@ -346,5 +304,148 @@ func TestHandleGetUserReservations(t *testing.T) {
 
 			assertStatus(t, response.Code, tt.expectedStatus)
 		})
+	}
+}
+
+func TestHandleGetReservationByID(t *testing.T) {
+
+	reservationID := "f7f7dad8-84fd-4c10-9f95-d2a68d38a46f"
+	getReservationTests := []struct {
+		name string
+		setupContext func() context.Context
+		reservationID string
+		fakeErr error
+		expectedStatus int
+	}{
+		{
+			name: "success",
+			setupContext: createContext,
+			reservationID: reservationID,
+			fakeErr: nil,
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "unauthorized",
+			setupContext: func() context.Context {
+				return context.Background()
+			},
+			reservationID: reservationID,
+			fakeErr: nil,
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name: "internal server error",
+			setupContext: createContext,
+			reservationID: reservationID,
+			fakeErr: apperror.ErrDatabase,
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name: "not found",
+			setupContext: createContext,
+			reservationID: reservationID,
+			fakeErr: apperror.ErrNotFound,
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name: "bad request",
+			setupContext: createContext,
+			reservationID: "invalid-uuid",
+			fakeErr: nil,
+			expectedStatus: http.StatusBadRequest,
+		},
+		}
+	for _, tt := range getReservationTests {
+		t.Run(tt.name, func(t *testing.T){
+			h := &Handler{
+				reservationService: &StubreservationService{
+					FakeGetReservationByID: func(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error) {
+						return &domain.Reservation{}, tt.fakeErr
+					},
+				},
+			}
+			request := httptest.NewRequestWithContext(tt.setupContext(), "GET", "/api/reservations/"+tt.reservationID, nil)
+			response := httptest.NewRecorder()
+			request.SetPathValue("id", tt.reservationID)
+
+			h.HandleGetReservationByID(response, request)
+
+			assertStatus(t, response.Code, tt.expectedStatus)
+		})
+	}
+}
+
+func TestHandlePurchaseReservation(t *testing.T) {
+	reservationID := "f7f7dad8-84fd-4c10-9f95-d2a68d38a46f"
+	purchageTests := []struct {
+		name string
+		setupContext func() context.Context
+		reservationID string
+		fakeErr error
+		expectedStatus int
+	}{
+		{
+			name: "success",
+			setupContext: createContext,
+			reservationID: reservationID,
+			fakeErr: nil,
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "unauthorized",
+			setupContext: func() context.Context {
+				return context.Background()
+			},
+			reservationID: reservationID,
+			fakeErr: nil,
+			expectedStatus: http.StatusUnauthorized,
+		},
+		{
+			name: "internal server error",
+			setupContext: createContext,
+			reservationID: reservationID,
+			fakeErr: apperror.ErrDatabase,
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name: "not found",
+			setupContext: createContext,
+			reservationID: reservationID,
+			fakeErr: apperror.ErrNotFound,
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name: "bad request",
+			setupContext: createContext,
+			reservationID: "invalid-uuid",
+			fakeErr: nil,
+			expectedStatus: http.StatusBadRequest,
+		},
+	}
+	for _, tt := range purchageTests {
+		t.Run(tt.name, func(t *testing.T){
+			h := &Handler{
+				reservationService: &StubreservationService{
+					FakePurchaseReservation: func(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error) {
+						return &domain.Reservation{}, tt.fakeErr
+					},
+				},
+			}
+			request := httptest.NewRequestWithContext(tt.setupContext(), "POST", "/api/reservations/"+tt.reservationID+"/purchase", nil)
+			response := httptest.NewRecorder()
+			request.SetPathValue("id", tt.reservationID)
+
+			h.HandlePurchaseReservation(response, request)
+
+			assertStatus(t, response.Code, tt.expectedStatus)
+		})
+	}
+}
+
+
+func assertStatus(t testing.TB, got, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("did not get correct status, got %d, want %d", got, want)
 	}
 }
