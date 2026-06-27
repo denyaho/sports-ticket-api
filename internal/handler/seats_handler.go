@@ -9,12 +9,12 @@ import (
 func (h *Handler) HandleGetSeatsByGameID(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	seatID, err := uuid.Parse(id)
+	gameID, err := uuid.Parse(id)
 	if err != nil {
 		h.handleError(w, apperror.ErrBadRequest)
 		return
 	}
-	seats, err := h.seatsService.GetSeatsByGameID(r.Context(), seatID)
+	seats, err := h.seatsService.GetSeatsByGameID(r.Context(), gameID)
 	if err != nil {
 		h.handleError(w, err)
 		return

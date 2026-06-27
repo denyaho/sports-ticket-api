@@ -3,9 +3,10 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"log"
 	"github.com/google/uuid"
 	"42tokyo-road-to-dena-server/internal/domain"
+	"42tokyo-road-to-dena-server/internal/apperror"
 )
 
 type SeatsRepository interface {
@@ -38,7 +39,9 @@ func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID uu
 
 	rows, err := r.DB.QueryContext(ctx, query, gameID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query seats: %w", err)
+		log.Printf("Error querying seats by game ID: %v", err)
+		return nil, apperror.ErrDatabase
+
 	}
 	defer rows.Close()
 
@@ -46,12 +49,14 @@ func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID uu
 		var seat domain.Seat
 		err := rows.Scan(&seat.Grade, &seat.Price, &seat.Total, &seat.Available, &seat.Reserved, &seat.Sold)
 		if err != nil {
-			return nil, fmt.Errorf("failed to scan seat: %w", err)
+			log.Printf("Error scanning seat: %v", err)
+			return nil, apperror.ErrDatabase
 		}
 		seats = append(seats, seat)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating rows: %w", err)
+		log.Printf("Error iterating rows: %v", err)
+		return nil, apperror.ErrDatabase
 	}
 	return seats, nil
 }
