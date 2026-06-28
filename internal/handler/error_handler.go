@@ -8,7 +8,7 @@ import (
 	"42tokyo-road-to-dena-server/internal/apperror"
 )
 
-func (h *Handler) handleError(w http.ResponseWriter, err error) {
+func (h *Handler) HandleError(w http.ResponseWriter, err error) {
 
 	switch {
 	case errors.Is(err, context.Canceled):

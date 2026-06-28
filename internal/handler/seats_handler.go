@@ -11,12 +11,12 @@ func (h *Handler) HandleGetSeatsByGameID(w http.ResponseWriter, r *http.Request)
 
 	gameID, err := uuid.Parse(id)
 	if err != nil {
-		h.handleError(w, apperror.ErrBadRequest)
+		h.HandleError(w, apperror.ErrBadRequest)
 		return
 	}
 	seats, err := h.seatsService.GetSeatsByGameID(r.Context(), gameID)
 	if err != nil {
-		h.handleError(w, err)
+		h.HandleError(w, err)
 		return
 	}
 	h.respondJSON(w, seats, http.StatusOK)

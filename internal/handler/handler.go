@@ -42,6 +42,7 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("GET /health", h.HealthCheck)
 	mux.HandleFunc("POST /api/user/signup", h.HandleUserSignup)
 	mux.HandleFunc("POST /api/user/login", h.HandleUserLogin)
+	mux.HandleFunc("POST /api/user/refresh", h.HandleRefreshToken)
 	// 認証が必要なルートはミドルウェアで保護
 	mux.Handle("GET /api/user/me", h.AuthRequired(http.HandlerFunc(h.HandleGetUser)))
 
