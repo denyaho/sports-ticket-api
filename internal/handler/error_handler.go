@@ -25,7 +25,7 @@ func (h *Handler) handleError(w http.ResponseWriter, err error) {
 		h.respondError(w, err, http.StatusConflict) // 409 Conflict
 	case errors.Is(err, apperror.ErrUserNotFound):
 		h.respondError(w, err, http.StatusNotFound)
-	case errors.Is(err, apperror.ErrDatabase):
+	case errors.Is(err, apperror.ErrDatabase), errors.Is(err, apperror.ErrInternal):
 		h.respondError(w, err, http.StatusInternalServerError)
 	case errors.Is(err, apperror.ErrDuplicateEmail):
 		h.respondError(w, err, http.StatusConflict)
@@ -39,6 +39,12 @@ func (h *Handler) handleError(w http.ResponseWriter, err error) {
 		h.respondError(w, err, http.StatusBadRequest) // 400 Bad Request
 	case errors.Is(err, apperror.ErrBadRequest):
 		h.respondError(w, err, http.StatusBadRequest) // 400 Bad Request
+	case errors.Is(err, apperror.ErrInvalidInput):
+		h.respondError(w, err, http.StatusBadRequest) // 400 Bad Request
+	case errors.Is(err, apperror.ErrAuthenticationFailed):
+		h.respondError(w, err, http.StatusUnauthorized) // 401 Unauthorized
+	case errors.Is(err, apperror.ErrForbidden):
+		h.respondError(w, err, http.StatusForbidden) // 403 Forbidden
 	default:
 		h.respondError(w, err, http.StatusInternalServerError)
 	}

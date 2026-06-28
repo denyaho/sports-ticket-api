@@ -9,18 +9,13 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"errors"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"golang.org/x/crypto/bcrypt")
-
-// エラー定数
-var (
-	ErrUnauthorized = errors.New("unauthorized")
-	ErrInvalidInput = errors.New("invalid input")
-	ErrInternal     = errors.New("internal server error")
+	"golang.org/x/crypto/bcrypt"
+	"42tokyo-road-to-dena-server/internal/apperror"
 )
+
 
 // ============================================================================
 // 認証機能統合ファイル
@@ -189,7 +184,7 @@ func (a *AuthBundle) GenerateAccessToken(userID uuid.UUID) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(a.cfg.JWTSecret))
 	if err != nil {
-		return "", fmt.Errorf("%w: failed to sign token: %v", ErrInternal, err)
+		return "", fmt.Errorf("%w: failed to sign token: %v", apperror.ErrInternal, err)
 	}
 
 	return tokenString, nil
@@ -199,7 +194,7 @@ func (a *AuthBundle) GenerateAccessToken(userID uuid.UUID) (string, error) {
 func (a *AuthBundle) ValidateAccessToken(tokenString string) (*AuthClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &AuthClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("%w: unexpected signing method: %v", ErrUnauthorized, token.Header["alg"])
+			return nil, fmt.Errorf("%w: unexpected signing method: %v", apperror.ErrUnauthorized, token.Header["alg"])
 		}
 		return []byte(a.cfg.JWTSecret), nil
 	})
@@ -209,17 +204,17 @@ func (a *AuthBundle) ValidateAccessToken(tokenString string) (*AuthClaims, error
 	}
 
 	if !token.Valid {
-		return nil, ErrUnauthorized
+		return nil, apperror.ErrUnauthorized
 	}
 
 	claims, ok := token.Claims.(*AuthClaims)
 	if !ok {
-		return nil, ErrUnauthorized
+		return nil, apperror.ErrUnauthorized
 	}
 
 	// Issuer検証
 	if claims.Issuer != a.cfg.JWTIssuer {
-		return nil, ErrUnauthorized
+		return nil, apperror.ErrUnauthorized
 	}
 
 	// Audience検証
@@ -231,7 +226,7 @@ func (a *AuthBundle) ValidateAccessToken(tokenString string) (*AuthClaims, error
 		}
 	}
 	if !validAudience {
-		return nil, ErrUnauthorized
+		return nil, apperror.ErrUnauthorized
 	}
 
 	return claims, nil
@@ -242,7 +237,7 @@ func (a *AuthBundle) GenerateRefreshToken(ctx context.Context, userID uuid.UUID)
 	// ランダムトークン生成
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
-		return "", fmt.Errorf("%w: failed to generate random token: %v", ErrInternal, err)
+		return "", fmt.Errorf("%w: failed to generate random token: %v", apperror.ErrInternal, err)
 	}
 	tokenString := hex.EncodeToString(tokenBytes)
 
@@ -261,7 +256,7 @@ func (a *AuthBundle) GenerateRefreshToken(ctx context.Context, userID uuid.UUID)
 	}
 
 	if err := a.refreshTokenStore.Create(ctx, refreshToken); err != nil {
-		return "", fmt.Errorf("%w: failed to save refresh token: %v", ErrInternal, err)
+		return "", fmt.Errorf("%w: failed to save refresh token: %v", apperror.ErrInternal, err)
 	}
 
 	return tokenString, nil
@@ -279,15 +274,15 @@ func (a *AuthBundle) ValidateRefreshToken(ctx context.Context, tokenString strin
 		return nil, err
 	}
 	if token == nil {
-		return nil, ErrUnauthorized
+		return nil, apperror.ErrUnauthorized
 	}
 
 	if token.IsExpired() {
-		return nil, ErrUnauthorized
+		return nil, apperror.ErrUnauthorized
 	}
 
 	if token.IsRevoked() {
-		return nil, ErrUnauthorized
+		return nil, apperror.ErrUnauthorized
 	}
 
 	return token, nil
@@ -305,13 +300,13 @@ func (a *AuthBundle) RotateRefreshToken(ctx context.Context, oldTokenString stri
 	hash := sha256.Sum256([]byte(oldTokenString))
 	tokenHash := hex.EncodeToString(hash[:])
 	if err := a.refreshTokenStore.RevokeByTokenHash(ctx, tokenHash); err != nil {
-		return "", fmt.Errorf("%w: failed to revoke old token: %v", ErrInternal, err)
+		return "", fmt.Errorf("%w: failed to revoke old token: %v", apperror.ErrInternal, err)
 	}
 
 	// 新トークン生成
 	newToken, err := a.GenerateRefreshToken(ctx, oldToken.UserID)
 	if err != nil {
-		return "", fmt.Errorf("%w: failed to generate new token: %v", ErrInternal, err)
+		return "", fmt.Errorf("%w: failed to generate new token: %v", apperror.ErrInternal, err)
 	}
 
 	return newToken, nil
@@ -321,7 +316,7 @@ func (a *AuthBundle) RotateRefreshToken(ctx context.Context, oldTokenString stri
 func HashPassword(password string) (string, error) {
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: failed to hash password: %v", apperror.ErrInternal, err)
 	}
 	return string(hashedBytes), nil
 }

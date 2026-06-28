@@ -24,5 +24,5 @@ var (
 	ErrReservationConflict = errors.New("reservation conflict")
 	ErrBadRequest = errors.New("bad request")
 	ErrReservationNotPending = errors.New("reservation is not pending")
-	
+	ErrInternal = errors.New("internal server error")	
 )

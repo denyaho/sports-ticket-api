@@ -3,7 +3,6 @@ package handler
 import (
 	"net/http"
 	"encoding/json"
-	"errors"
 	"42tokyo-road-to-dena-server/internal/domain"
 	"42tokyo-road-to-dena-server/authbundle"
 	"42tokyo-road-to-dena-server/internal/apperror"
@@ -19,12 +18,7 @@ func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userInfo, err := h.userservice.FindUserByID(r.Context(), userID)
-
-	if errors.Is(err, apperror.ErrUserNotFound) {
-		h.handleError(w, err)
-		return
-	}
-	if errors.Is(err, apperror.ErrDatabase) {
+	if err != nil {
 		h.handleError(w, err)
 		return
 	}
@@ -47,7 +41,7 @@ func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 	var reqBody LoginRequest
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&reqBody); err != nil {
-		h.handleError(w, err)
+		h.handleError(w, apperror.ErrBadRequest)
 		return
 	}
 	userInfo := &domain.User{
@@ -55,16 +49,7 @@ func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) {
 		Password: reqBody.Password,
 	}
 	id, err := h.userservice.AuthenticateUser(ctx, userInfo)
-
-	if errors.Is(err, apperror.ErrUserNotFound) {
-		h.handleError(w, err)
-		return
-	}
-	if errors.Is(err, apperror.ErrDatabase) {
-		h.handleError(w, err)
-		return
-	}
-	if errors.Is(err, apperror.ErrAuthenticationFailed) {
+	if err != nil {
 		h.handleError(w, err)
 		return
 	}
@@ -101,7 +86,7 @@ func (h *Handler) HandleUserSignup(w http.ResponseWriter, r *http.Request) {
 	var reqBody SignupRequest
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&reqBody); err != nil {
-		h.handleError(w, err)
+		h.handleError(w, apperror.ErrBadRequest)
 		return
 	}
 	
@@ -111,11 +96,7 @@ func (h *Handler) HandleUserSignup(w http.ResponseWriter, r *http.Request) {
 		Password: reqBody.Password,
 	}
 	id, err := h.userservice.CreateUser(ctx, userinfo)
-	if errors.Is(err, apperror.ErrDuplicateEmail) {
-		h.handleError(w, err)
-		return
-	}
-	if errors.Is(err, apperror.ErrDatabase) {
+	if err != nil {
 		h.handleError(w, err)
 		return
 	}

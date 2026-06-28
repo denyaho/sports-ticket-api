@@ -2,6 +2,7 @@ package handler
 
 import (
 	"42tokyo-road-to-dena-server/authbundle"
+	"42tokyo-road-to-dena-server/internal/apperror"
 	"context"
 	"net/http"
 	"strings"
@@ -14,19 +15,19 @@ func (h *Handler) AuthRequired(next http.Handler) http.Handler {
 
 		// トークンがない場合は認証エラー
 		if token == "" {
-			h.respondError(w, authbundle.ErrUnauthorized, http.StatusUnauthorized)
+			h.respondError(w, apperror.ErrUnauthorized, http.StatusUnauthorized)
 			return
 		}
 		// トークンを検証し、claims から userID を取得
 		if h.authBundleService == nil {
-			h.respondError(w, authbundle.ErrUnauthorized, http.StatusUnauthorized)
+			h.respondError(w, apperror.ErrUnauthorized, http.StatusUnauthorized)
 			return
 		}
 
 		// トークンを検証し、claims から userID を取得
 		claims, err := h.authBundleService.ValidateAccessToken(token)
 		if err != nil {
-			h.respondError(w, authbundle.ErrUnauthorized, http.StatusUnauthorized)
+			h.respondError(w, apperror.ErrUnauthorized, http.StatusUnauthorized)
 			return
 		}
 
