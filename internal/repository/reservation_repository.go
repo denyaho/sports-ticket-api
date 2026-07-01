@@ -46,46 +46,37 @@ func (r *reservationRepository) CheckExpiredReservations(ctx context.Context) er
 	return nil
 }
 
-func CheckReservation(ctx context.Context, tx *sql.Tx, reservationID, userID uuid.UUID) (bool, error) {
-	query := `SELECT reservations.status, reservations.user_id, reservations.expires_at, tickets.status FROM reservations JOIN tickets ON tickets.reservation_id = reservations.id WHERE reservations.id = $1 FOR UPDATE`
+// func CheckReservation(ctx context.Context, tx *sql.Tx, reservationID, userID uuid.UUID) (bool, error) {
+// 	query := `SELECT reservations.status, reservations.user_id, reservations.expires_at, tickets.status FROM reservations JOIN tickets ON tickets.reservation_id = reservations.id WHERE reservations.id = $1 FOR UPDATE`
 
-	rows, err := tx.QueryContext(ctx, query, reservationID)
-	if err != nil {
-		log.Printf("Error executing query: %v", err)
-		return false, apperror.ErrDatabase
-	}
-	defer rows.Close()
+// 	rows, err := tx.QueryContext(ctx, query, reservationID)
+// 	if err != nil {
+// 		log.Printf("Error executing query: %v", err)
+// 		return false, apperror.ErrDatabase
+// 	}
+// 	defer rows.Close()
 
-	var status string
-	var ticketStatus string
-	var expiresAt time.Time
-	var dbUserID uuid.UUID
+// 	var status string
+// 	var ticketStatus string
+// 	var expiresAt time.Time
+// 	var dbUserID uuid.UUID
 
-	for rows.Next() {
-		err := rows.Scan(&status, &dbUserID, &expiresAt, &ticketStatus)
-		if err != nil {
-			log.Printf("Error scanning row: %v", err)
-			return false, apperror.ErrDatabase
-		}
-		if dbUserID != userID {
-			return false, apperror.ErrNotFound
-		}
-		if status != "pending" {
-			return false, apperror.ErrReservationNotPending
-		}
-		if expiresAt.Before(time.Now()) {
-			return false, apperror.ErrReservationExpired
-		}
-		if ticketStatus != "reserved" {
-			return false, apperror.ErrReservationConflict
-		}
-	}
-	if err := rows.Err(); err != nil {
-		log.Printf("Error iterating rows: %v", err)
-		return false, apperror.ErrDatabase
-	}
-	return true, nil
-}
+// 	for rows.Next() {
+// 		err := rows.Scan(&status, &dbUserID, &expiresAt, &ticketStatus)
+// 		if err != nil {
+// 			log.Printf("Error scanning row: %v", err)
+// 			return false, apperror.ErrDatabase
+// 		}
+// 		if dbUserID != userID {
+// 			return false, apperror.ErrNotFound
+// 		}
+// 	}
+// 	if err := rows.Err(); err != nil {
+// 		log.Printf("Error iterating rows: %v", err)
+// 		return false, apperror.ErrDatabase
+// 	}
+// 	return true, nil
+// }
 
 func (r *reservationRepository) CancelReservation(ctx context.Context, reservationID, userID uuid.UUID) error {
 
@@ -95,22 +86,33 @@ func (r *reservationRepository) CancelReservation(ctx context.Context, reservati
 		return apperror.ErrDatabase
 	}
 	defer tx.Rollback()
-	
-	if _, err := CheckReservation(ctx, tx, reservationID, userID); err != nil {
-		return err
-	}
 
 	query := `WITH c_reservation AS (
-	UPDATE reservations SET status = 'cancelled'
-	WHERE status = 'pending' AND expires_at > NOW() AND id = $1 AND user_id = $2 RETURNING id)
-	UPDATE tickets SET status = 'available', reservation_id = NULL WHERE tickets.reservation_id = c_reservation.id`
+			UPDATE reservations SET status = 'cancelled'
+			WHERE id = $1 AND user_id = $2
+			AND (
+				(status = 'pending' AND expires_at > NOW()) 
+				OR (status = 'confirmed')
+			) 
+			RETURNING id
+	)
+	UPDATE tickets SET status = 'available', reservation_id = NULL 
+	FROM c_reservation
+	WHERE tickets.reservation_id = c_reservation.id`
 
-	_, err = tx.ExecContext(ctx, query, reservationID, userID)
+	result, err := tx.ExecContext(ctx, query, reservationID, userID)
 	if err != nil {
 		log.Printf("Error updating reservation and tickets: %v", err)
 		return apperror.ErrDatabase
 	}
-
+	affected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error getting affected rows: %v", err)
+		return apperror.ErrDatabase
+	}
+	if affected == 0 {
+		return apperror.ErrNotFound
+	}
 	if err := tx.Commit(); err != nil {
 		log.Printf("Error committing transaction: %v", err)
 		return apperror.ErrDatabase
@@ -135,10 +137,12 @@ func (r *reservationRepository) PurchaseReservation(ctx context.Context, reserva
 	}
 
 	query := `WITH p_reservation AS (
-	UPDATE reservations SET status = 'confirmed'
-	WHERE status = 'pending' AND expires_at > NOW() AND id = $1 AND user_id = $2
-	RETURNING id, game_id, status, expires_at, created_at, updated_at)
+			UPDATE reservations SET status = 'confirmed'
+			WHERE status = 'pending' AND expires_at > NOW() AND id = $1 AND user_id = $2
+			RETURNING id, game_id, status, expires_at, created_at, updated_at
+	)
 	UPDATE tickets SET status = 'sold'
+	FROM p_reservation
 	WHERE tickets.reservation_id = p_reservation.id
 	RETURNING p_reservation.id, p_reservation.game_id, p_reservation.status, p_reservation.expires_at, p_reservation.created_at, p_reservation.updated_at, tickets.id, tickets.seat_id, tickets.price, tickets.status, tickets.created_at, tickets.updated_at`
 
@@ -227,7 +231,6 @@ func (r *reservationRepository) GetUserReservations(ctx context.Context, userID 
 			return nil, apperror.ErrDatabase
 		}
 		resMap, ok := reservations[reservation.ID]
-		order = append(order, reservation.ID)
 		if !ok {
 			if reservation.Status == "pending" && reservation.ExpiresAt.Before(time.Now()) {
 				reservation.Status = "expired"
@@ -235,6 +238,7 @@ func (r *reservationRepository) GetUserReservations(ctx context.Context, userID 
 			reservation.Tickets = []domain.Tickets{}
 			reservations[reservation.ID] = &reservation
 			resMap = &reservation
+			order = append(order, reservation.ID)
 		}
 		resMap.Tickets = append(resMap.Tickets, ticket)
 	}
@@ -259,7 +263,7 @@ func (r *reservationRepository) GetReservationByID(ctx context.Context, reservat
 	tickets.id, tickets.seat_id, tickets.price, tickets.status, tickets.created_at, tickets.updated_at
 	FROM reservations
 	JOIN tickets ON reservations.id = tickets.reservation_id
-	WHERE reservations.id = $1 AND reservations.user_id = $2
+	WHERE reservations.id = $1 AND reservations.user_id = $2 
 	`
 
 	rows ,err := r.DB.QueryContext(ctx, query, reservationID, userID)
@@ -340,7 +344,7 @@ func (r *reservationRepository) CreateReservation(ctx context.Context, reqBody *
 					AND reservations.status = 'pending'
 					AND reservations.expires_at < NOW()
 				))))LIMIT $3 FOR UPDATE OF tickets`
-
+// skip locked でテストしてみる
 
 		rows, err := tx.QueryContext(ctx, query, game_ID, seatGrade, seatQuantity)
 		if err != nil {
@@ -401,6 +405,8 @@ func (r *reservationRepository) CreateReservation(ctx context.Context, reqBody *
 	var tickets_response []domain.Tickets
 
 	updateQuery := fmt.Sprintf(`UPDATE tickets SET reservation_id = $1, status = 'reserved' WHERE id IN (%s) returning id, seat_id, price, status, created_at, updated_at`, strings.Join(placeholders, ", "))
+
+	log.Printf("Executing update query: %s with args: %v", updateQuery, args)
 
 	rows, err := tx.QueryContext(ctx, updateQuery, args...)
 	if err != nil {

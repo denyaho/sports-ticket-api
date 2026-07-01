@@ -5,6 +5,7 @@ import (
 	"42tokyo-road-to-dena-server/internal/service"
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,7 +16,8 @@ func New(authbundle *authbundle.AuthBundle,
 	userservice service.UserService,
 	gameService service.GameService,
 	seatsService service.SeatsService,
-	reservationService service.ReservationService) *Handler {
+	reservationService service.ReservationService,
+	logger *slog.Logger) *Handler {
 	return &Handler{
 		authBundleService: authbundle,
 		authConfig:        authConfig,
@@ -23,6 +25,7 @@ func New(authbundle *authbundle.AuthBundle,
 		gameService:		gameService,
 		seatsService:      seatsService,
 		reservationService: reservationService,
+		logger:            logger,
 	}
 }
 
@@ -33,6 +36,7 @@ type Handler struct {
 	gameService service.GameService
 	seatsService service.SeatsService
 	reservationService service.ReservationService
+	logger            *slog.Logger
 }
 
 func (h *Handler) Routes() http.Handler {
@@ -77,7 +81,7 @@ func (h *Handler) Routes() http.Handler {
 		http.ServeFile(w, r, filepath.Join("docs", "swagger", "index.html"))
 	})
 
-	return mux
+	return h.Logging(mux)
 }
 
 func (h *Handler) respondJSON(w http.ResponseWriter, data interface{}, status int) {

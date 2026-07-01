@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -78,6 +79,8 @@ func main() {
 	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, dbDriver))
 	authbundle := authbundle.NewAuthBundle(authConfig, store)
 
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
 	h := handler.New(
 		authbundle,
 		authConfig,
@@ -85,6 +88,7 @@ func main() {
 		gameService,
 		seatsService,
 		reservationService,
+		logger,
 	)
 	// HTTPサーバーの設定
 	srv := &http.Server{
