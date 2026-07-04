@@ -93,7 +93,7 @@ func TestHandleUserSignup(t *testing.T) {
 			request := httptest.NewRequestWithContext(tt.setupContext(), "POST", "/api/user/signup", strings.NewReader(tt.reqBody))
 			response := httptest.NewRecorder()
 
-			h.HandleUserSignup(response, request)
+			h.toHandler(h.HandleUserSignup)(response, request)
 			assertStatus(t, response.Code, tt.expectedErr)
 		})
 	}
@@ -157,7 +157,7 @@ func TestHandleGetUser(t *testing.T) {
 			request := httptest.NewRequestWithContext(tt.setupContext(), "GET", "/api/user/me", nil)
 			response := httptest.NewRecorder()
 
-			h.HandleGetUser(response, request)
+			h.toHandler(h.HandleGetUser)(response, request)
 			assertStatus(t, response.Code, tt.expectedErr)
 		})
 
@@ -218,7 +218,7 @@ func TestHandleUserLogin(t *testing.T) {
 			request := httptest.NewRequestWithContext(tt.setupContext(), "POST", "/api/user/login", strings.NewReader(tt.reqBody))
 			response := httptest.NewRecorder()
 
-			h.HandleUserLogin(response, request)
+			h.toHandler(h.HandleUserLogin)(response, request)
 			assertStatus(t, response.Code, tt.expectedErr)
 		})
 	}

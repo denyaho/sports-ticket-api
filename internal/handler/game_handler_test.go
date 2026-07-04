@@ -58,7 +58,7 @@ func TestGetAllGames(t *testing.T) {
 		request := httptest.NewRequestWithContext(tt.setupContext(), "GET", "/api/games", nil)
 		response := httptest.NewRecorder()
 
-		h.HandleGetAllGames(response, request)
+		h.toHandler(h.HandleGetAllGames)(response, request)
 		assertStatus(t, response.Code, tt.expectedErr)
 		})
 	}
@@ -117,7 +117,7 @@ func TestGetGameByID(t *testing.T) {
 			request.SetPathValue("id", tt.gameID)
 			response := httptest.NewRecorder()
 
-			h.HandleGetGameByID(response, request)
+			h.toHandler(h.HandleGetGameByID)(response, request)
 			assertStatus(t, response.Code, tt.expectedErr)
 		})
 	}

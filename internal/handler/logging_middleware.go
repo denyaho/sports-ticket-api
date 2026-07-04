@@ -6,11 +6,19 @@ import (
 	"bytes"
 	"strings"
 	"net"
-	"log/slog"
+	"context"
+	"log"
+	"github.com/google/uuid"
 )
+
+type RequestState struct {
+	Err error
+	UserID uuid.UUID
+}
+
 type contextKey string
 
-const UserIDKey contextKey = "userID"
+const requestStateKey contextKey = "requestState"
 
 type rwWrapper struct {
 	rw http.ResponseWriter
@@ -38,30 +46,36 @@ func (w *rwWrapper) WriteHeader(statusCode int) {
 	return
 }
 
-type LoggingBundle struct {
-	logger *slog.Logger
-}
-
-
 func (h *Handler) Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqURL := r.URL.String()
 		reqBody, err := io.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			h.errorLog(r, "",http.StatusInternalServerError, "", "", nil, err)
+			h.errorLog(r, "",http.StatusInternalServerError, "", "", err)
 			return
 		}
 		r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
 		hostIP := h.getClientIP(r)
 		rww := NewRwWrapper(w)
-		next.ServeHTTP(rww, r)
-		statusCode := rww.statusCode
-		userID, _ := r.Context().Value(UserIDKey).(string)
+		holder := &RequestState{}
+		ctx := context.WithValue(r.Context(), requestStateKey, holder)
 
-		h.accessLog(r, reqURL, statusCode, userID, hostIP, reqBody)
-		if statusCode >= 500 {
-			h.errorLog(r, reqURL, statusCode, userID, hostIP, reqBody, err)
+		next.ServeHTTP(rww, r.WithContext(ctx))
+
+		statusCode := rww.statusCode
+		err = holder.Err
+		userID := holder.UserID.String()
+
+		log.Printf("Error: %v", err)
+		log.Printf("statusCode: %d", statusCode)
+
+		if statusCode >= 400 && statusCode < 500 {
+			h.warnLog(r, reqURL, statusCode, userID, hostIP, err)
+		} else if statusCode >= 500 {
+			h.errorLog(r, reqURL, statusCode, userID, hostIP, err)
+		}else {
+			h.accessLog(r, reqURL, statusCode, userID, hostIP)
 		}
 	})
 }
@@ -78,7 +92,7 @@ func (h *Handler) getClientIP(r *http.Request) string {
 	return ip
 }
 
-func (h *Handler) accessLog(r *http.Request, reqURL string, statusCode int, userID string, hostIP string, reqBody []byte) {
+func (h *Handler) accessLog(r *http.Request, reqURL string, statusCode int, userID string, hostIP string) {
 	accessLogger := h.logger.With("type", "access")
 	accessLogger.Info("Access log",
 		"method", r.Method,
@@ -86,17 +100,26 @@ func (h *Handler) accessLog(r *http.Request, reqURL string, statusCode int, user
 		"status", statusCode,
 		"userID", userID,
 		"hostIP", hostIP,
-		"requestBody", string(reqBody),
 	)
 }
 
-func (h *Handler) errorLog(r *http.Request, reqURL string, statusCode int, userID string, hostIP string, reqBody []byte, err error) {
+func (h *Handler) warnLog(r *http.Request, reqURL string, statusCode int, userID string, hostIP string, warn error) {
+	warnLogger := h.logger.With("type", "warn")
+	warnLogger.Warn("Warn log",
+		"method", r.Method,
+		"url", reqURL,
+		"status", statusCode,
+		"userID", userID,
+		"hostIP", hostIP,
+		"warn", warn,
+	)
+}
+func (h *Handler) errorLog(r *http.Request, reqURL string, statusCode int, userID string, hostIP string, err error) {
 	errorLogger := h.logger.With("type", "error")
 	errorLogger.Error("Error log",
 		"url", reqURL,
 		"status", statusCode,
 		"userID", userID,
-		"requestBody", string(reqBody),
-		"error", err.Error(),
+		"error", err,
 	)
 }

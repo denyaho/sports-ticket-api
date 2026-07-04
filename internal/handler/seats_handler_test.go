@@ -65,7 +65,7 @@ func TestGetSeatsByGameID(t *testing.T) {
 			request.SetPathValue("id", tt.gameID)
 			response := httptest.NewRecorder()
 
-			h.HandleGetSeatsByGameID(response, request)
+			h.toHandler(h.HandleGetSeatsByGameID)(response, request)
 			assertStatus(t, response.Code, tt.expectedErr)
 		})
 	}

@@ -8,31 +8,28 @@ import (
 	"42tokyo-road-to-dena-server/internal/apperror"
 )
 
-
-func (h *Handler) HandleGetAllGames(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleGetAllGames(w http.ResponseWriter, r *http.Request) error {
 	games, err := h.gameService.GetAllGames(r.Context())
 	if err != nil {
-		h.HandleError(w, err)
-		return
+		return err
 	}
 	h.respondJSON(w, games, http.StatusOK)
+	return nil
 }
 
-func (h *Handler) HandleGetGameByID(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleGetGameByID(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
 	gameID, err := uuid.Parse(id)
 	if err != nil {
-		h.HandleError(w, apperror.ErrBadRequest)
-		return
+		return apperror.ErrBadRequest
 	}
 	game, err := h.gameService.GetGameByID(r.Context(), gameID)
 	if errors.Is(err, repository.ErrNotFound) {
-		h.HandleError(w, apperror.ErrNotFound)
-		return
+		return apperror.ErrNotFound
 	}
 	if err != nil {
-		h.HandleError(w, err)
-		return
+		return err
 	}
 	h.respondJSON(w, game, http.StatusOK)
+	return nil
 }

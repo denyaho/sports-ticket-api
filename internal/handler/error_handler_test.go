@@ -116,7 +116,8 @@ func TestHandleError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &Handler{}
 			w := httptest.NewRecorder()
-			h.HandleError(w, tt.fakeErr)
+			r := httptest.NewRequest("GET", "/api/test", nil)
+			h.HandleError(w, r, tt.fakeErr)
 			if w.Code != tt.expectedStatus {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, w.Code)
 			}

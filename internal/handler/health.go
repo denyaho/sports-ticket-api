@@ -5,10 +5,11 @@ import (
 	"time"
 )
 
-func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) error {
 	response := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now().Unix(),
 	}
 	h.respondJSON(w, response, http.StatusOK)
+	return nil
 }

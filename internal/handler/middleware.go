@@ -15,23 +15,26 @@ func (h *Handler) AuthRequired(next http.Handler) http.Handler {
 
 		// トークンがない場合は認証エラー
 		if token == "" {
-			h.respondError(w, apperror.ErrUnauthorized, http.StatusUnauthorized)
-			return
+			h.HandleError(w, r, apperror.ErrUnauthorized)
+			return 
 		}
 		// トークンを検証し、claims から userID を取得
 		if h.authBundleService == nil {
-			h.respondError(w, apperror.ErrUnauthorized, http.StatusUnauthorized)
+			h.HandleError(w, r, apperror.ErrUnauthorized)
 			return
 		}
 
 		// トークンを検証し、claims から userID を取得
 		claims, err := h.authBundleService.ValidateAccessToken(token)
 		if err != nil {
-			h.respondError(w, apperror.ErrUnauthorized, http.StatusUnauthorized)
+			h.HandleError(w, r, apperror.ErrUnauthorized)
 			return
 		}
 
 		ctx := context.WithValue(r.Context(), authbundle.UserIDKey, claims.UserID)
+
+		SetUserIDInRequestState(r.Context(), claims.UserID)
+
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

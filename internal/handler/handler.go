@@ -39,32 +39,40 @@ type Handler struct {
 	logger            *slog.Logger
 }
 
+func (h *Handler) toHandler(fn func(w http.ResponseWriter, r *http.Request) error) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := fn(w, r); err != nil {
+			h.HandleError(w, r, err)
+		}
+	}
+}
+
 func (h *Handler) Routes() http.Handler {
 	mux := http.NewServeMux()
 
 	// ルーティング
-	mux.HandleFunc("GET /health", h.HealthCheck)
-	mux.HandleFunc("POST /api/user/signup", h.HandleUserSignup)
-	mux.HandleFunc("POST /api/user/login", h.HandleUserLogin)
-	mux.HandleFunc("POST /api/user/refresh", h.HandleRefreshToken)
+	mux.HandleFunc("GET /health", h.toHandler(h.HealthCheck))
+	mux.HandleFunc("POST /api/user/signup", h.toHandler(h.HandleUserSignup))
+	mux.HandleFunc("POST /api/user/login", h.toHandler(h.HandleUserLogin))
+	mux.HandleFunc("POST /api/user/refresh", h.toHandler(h.HandleRefreshToken))
 	// 認証が必要なルートはミドルウェアで保護
-	mux.Handle("GET /api/user/me", h.AuthRequired(http.HandlerFunc(h.HandleGetUser)))
+	mux.Handle("GET /api/user/me", h.AuthRequired(h.toHandler(h.HandleGetUser)))
 
-	mux.HandleFunc("GET /api/games", h.HandleGetAllGames)
-	mux.HandleFunc("GET /api/games/{id}", h.HandleGetGameByID)
+	mux.HandleFunc("GET /api/games", h.toHandler(h.HandleGetAllGames))
+	mux.HandleFunc("GET /api/games/{id}", h.toHandler(h.HandleGetGameByID))
 
-	mux.HandleFunc("GET /api/games/{id}/seats", h.HandleGetSeatsByGameID)
+	mux.HandleFunc("GET /api/games/{id}/seats", h.toHandler(h.HandleGetSeatsByGameID))
 
 
-	mux.Handle("POST /api/reservations", h.AuthRequired(http.HandlerFunc(h.HandleCreateReservation)))
+	mux.Handle("POST /api/reservations", h.AuthRequired(h.toHandler(h.HandleCreateReservation)))
 
-	mux.Handle("GET /api/reservations", h.AuthRequired(http.HandlerFunc(h.HandleGetUserReservations)))
+	mux.Handle("GET /api/reservations", h.AuthRequired(h.toHandler(h.HandleGetUserReservations)))
 
-	mux.Handle("GET /api/reservations/{id}", h.AuthRequired(http.HandlerFunc(h.HandleGetReservationByID)))
+	mux.Handle("GET /api/reservations/{id}", h.AuthRequired(h.toHandler(h.HandleGetReservationByID)))
 
-	mux.Handle("PUT /api/reservations/{id}/purchase", h.AuthRequired(http.HandlerFunc(h.HandlePurchaseReservation)))
+	mux.Handle("PUT /api/reservations/{id}/purchase", h.AuthRequired(h.toHandler(h.HandlePurchaseReservation)))
 
-	mux.Handle("DELETE /api/reservations/{id}", h.AuthRequired(http.HandlerFunc(h.HandleCancelReservation)))
+	mux.Handle("DELETE /api/reservations/{id}", h.AuthRequired(h.toHandler(h.HandleCancelReservation)))
 
 
 	// Swagger/OpenAPI 配信
@@ -87,6 +95,7 @@ func (h *Handler) Routes() http.Handler {
 func (h *Handler) respondJSON(w http.ResponseWriter, data interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+	
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Printf("Failed to encode response: %v", err)
 	}

@@ -131,11 +131,6 @@ func (r *reservationRepository) PurchaseReservation(ctx context.Context, reserva
 	}
 	defer tx.Rollback()
 
-
-	if _, err := CheckReservation(ctx, tx, reservationID, userID); err != nil {
-		return nil, err
-	}
-
 	query := `WITH p_reservation AS (
 			UPDATE reservations SET status = 'confirmed'
 			WHERE status = 'pending' AND expires_at > NOW() AND id = $1 AND user_id = $2
@@ -181,7 +176,6 @@ func (r *reservationRepository) PurchaseReservation(ctx context.Context, reserva
 	if len(reservation.Tickets) == 0 {
 		return nil, apperror.ErrNotFound
 	}
-
 	if err := tx.Commit(); err != nil {
 		log.Printf("Error committing transaction: %v", err)
 		return nil, apperror.ErrDatabase

@@ -6,18 +6,17 @@ import (
 	"github.com/google/uuid"
 )
 
-func (h *Handler) HandleGetSeatsByGameID(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleGetSeatsByGameID(w http.ResponseWriter, r *http.Request) error {
 	id := r.PathValue("id")
 
 	gameID, err := uuid.Parse(id)
 	if err != nil {
-		h.HandleError(w, apperror.ErrBadRequest)
-		return
+		return apperror.ErrBadRequest
 	}
 	seats, err := h.seatsService.GetSeatsByGameID(r.Context(), gameID)
 	if err != nil {
-		h.HandleError(w, err)
-		return
+		return err
 	}
 	h.respondJSON(w, seats, http.StatusOK)
+	return nil
 }

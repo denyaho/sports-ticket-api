@@ -138,7 +138,7 @@ func TestHandleCancelReservation(t *testing.T) {
 			response := httptest.NewRecorder()
 			request.SetPathValue("id", tt.reservationID)
 
-			h.HandleCancelReservation(response, request)
+			h.toHandler(h.HandleCancelReservation)(response, request)
 
 			assertStatus(t, response.Code, tt.expectedStatus)
 			})
@@ -245,7 +245,7 @@ func TestHandleCreateReservation(t *testing.T) {
 			request := httptest.NewRequestWithContext(tt.setupContext(),"POST", "/api/reservations", strings.NewReader(tt.reqBody))
 			response := httptest.NewRecorder()
 
-			h.HandleCreateReservation(response, request)
+			h.toHandler(h.HandleCreateReservation)(response, request)
 
 			assertStatus(t, response.Code, tt.expectedStatus)			
 		})
@@ -300,7 +300,7 @@ func TestHandleGetUserReservations(t *testing.T) {
 			request := httptest.NewRequestWithContext(tt.setupContext(), "GET", "/api/reservations", nil)
 			response := httptest.NewRecorder()
 
-			h.HandleGetUserReservations(response, request)
+			h.toHandler(h.HandleGetUserReservations)(response, request)
 
 			assertStatus(t, response.Code, tt.expectedStatus)
 		})
@@ -368,7 +368,7 @@ func TestHandleGetReservationByID(t *testing.T) {
 			response := httptest.NewRecorder()
 			request.SetPathValue("id", tt.reservationID)
 
-			h.HandleGetReservationByID(response, request)
+			h.toHandler(h.HandleGetReservationByID)(response, request)
 
 			assertStatus(t, response.Code, tt.expectedStatus)
 		})
@@ -435,7 +435,7 @@ func TestHandlePurchaseReservation(t *testing.T) {
 			response := httptest.NewRecorder()
 			request.SetPathValue("id", tt.reservationID)
 
-			h.HandlePurchaseReservation(response, request)
+			h.toHandler(h.HandlePurchaseReservation)(response, request)
 
 			assertStatus(t, response.Code, tt.expectedStatus)
 		})
