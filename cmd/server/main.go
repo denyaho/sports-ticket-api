@@ -42,7 +42,8 @@ func main() {
 	}
 
 	db, err := sql.Open(dbDriver, dsn)
-	if err != nil {
+
+	if err := db.Ping(); err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
