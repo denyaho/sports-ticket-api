@@ -2,12 +2,9 @@ package handler
 
 import (
 	"net/http"
-	"io"
-	"bytes"
 	"strings"
 	"net"
 	"context"
-	"log"
 	"github.com/google/uuid"
 )
 
@@ -46,17 +43,17 @@ func (w *rwWrapper) WriteHeader(statusCode int) {
 	return
 }
 
+const maxBytesSize = 1 << 20 // 1MB
+
 func (h *Handler) Logging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqURL := r.URL.String()
-		reqBody, err := io.ReadAll(r.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			h.errorLog(r, "",http.StatusInternalServerError, "", "", err)
-			return
-		}
-		r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
+
 		hostIP := h.getClientIP(r)
+
+		r.Body = http.MaxBytesReader(w, r.Body, maxBytesSize)
+
+
 		rww := NewRwWrapper(w)
 		holder := &RequestState{}
 		ctx := context.WithValue(r.Context(), requestStateKey, holder)
@@ -64,11 +61,8 @@ func (h *Handler) Logging(next http.Handler) http.Handler {
 		next.ServeHTTP(rww, r.WithContext(ctx))
 
 		statusCode := rww.statusCode
-		err = holder.Err
+		err := holder.Err
 		userID := holder.UserID.String()
-
-		log.Printf("Error: %v", err)
-		log.Printf("statusCode: %d", statusCode)
 
 		if statusCode >= 400 && statusCode < 500 {
 			h.warnLog(r, reqURL, statusCode, userID, hostIP, err)
@@ -79,6 +73,8 @@ func (h *Handler) Logging(next http.Handler) http.Handler {
 		}
 	})
 }
+
+
 
 func (h *Handler) getClientIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
@@ -117,9 +113,11 @@ func (h *Handler) warnLog(r *http.Request, reqURL string, statusCode int, userID
 func (h *Handler) errorLog(r *http.Request, reqURL string, statusCode int, userID string, hostIP string, err error) {
 	errorLogger := h.logger.With("type", "error")
 	errorLogger.Error("Error log",
+		"method", r.Method,
 		"url", reqURL,
 		"status", statusCode,
 		"userID", userID,
+		"hostIP", hostIP,
 		"error", err,
 	)
 }

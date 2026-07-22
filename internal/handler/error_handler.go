@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"context"
+	"encoding/json"
 	"database/sql"
 	"42tokyo-road-to-dena-server/internal/apperror"
 )
@@ -12,7 +13,18 @@ func (h *Handler) HandleError(w http.ResponseWriter, r *http.Request, err error)
 
 	SetErrorInRequestState(r.Context(), err)
 
+	var maxErr *http.MaxBytesError
+	var syntaxErr *json.SyntaxError
+	var unmarshalTypeErr *json.UnmarshalTypeError
+
 	switch {
+	case errors.As(err, &maxErr):
+		h.respondError(w, err, http.StatusRequestEntityTooLarge)
+	case errors.As(err, &syntaxErr):
+		h.respondError(w, err, http.StatusBadRequest)
+	case errors.As(err, &unmarshalTypeErr):
+		h.respondError(w, err, http.StatusBadRequest)
+
 	case errors.Is(err, context.Canceled):
 		h.respondError(w, err, http.StatusRequestTimeout) // 408 Request Timeout
 	case errors.Is(err, context.DeadlineExceeded):

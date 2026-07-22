@@ -60,22 +60,6 @@ func main() {
 	reservationRepo := repository.NewReservationRepository(db)
 	reservationService := service.NewReservationService(reservationRepo)
 
-	go func() {
-		ticker := time.NewTicker(1 * time.Minute)
-		defer ticker.Stop()
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		for {
-			select {
-				case <-ticker.C:
-					if err := reservationRepo.CheckExpiredReservations(ctx); err != nil {
-						log.Printf("Error checking expired reservations: %v", err)
-					}
-				case <-ctx.Done():
-					return
-			}
-		}
-	}()
 
 	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, dbDriver))
 	authbundle := authbundle.NewAuthBundle(authConfig, store)
@@ -112,6 +96,27 @@ func main() {
 	// シグナルハンドリング
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)//監視すべきシグナルを列挙する
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		for {
+			select {
+				case <-ticker.C:
+					if err := reservationRepo.CheckExpiredReservations(ctx); err != nil {
+						log.Printf("Error checking expired reservations: %v", err)
+					}
+				case <-ctx.Done():
+					return
+				case <-quit:
+					return
+			}
+		}
+	}()
+
+
 	<-quit
 
 	log.Println("Shutting down server...")

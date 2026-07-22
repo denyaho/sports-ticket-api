@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"encoding/json"
+	"errors"
 	"42tokyo-road-to-dena-server/authbundle"
 	"42tokyo-road-to-dena-server/internal/domain"
 	"42tokyo-road-to-dena-server/internal/apperror"
@@ -45,7 +46,7 @@ func (h *Handler) HandleCreateReservation(w http.ResponseWriter, r *http.Request
 
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&reqBody); err != nil {
-		return apperror.ErrBadRequest
+		return errors.Join(apperror.ErrBadRequest, err)
 	}
 
 	reservation_response, err := h.reservationService.CreateReservation(ctx, &reqBody, userID)

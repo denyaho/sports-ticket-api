@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"errors"
 	"encoding/json"
 	"42tokyo-road-to-dena-server/internal/domain"
 	"42tokyo-road-to-dena-server/authbundle"
@@ -73,7 +74,7 @@ func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) error 
 	var reqBody LoginRequest
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&reqBody); err != nil {
-		return apperror.ErrBadRequest
+		return errors.Join(apperror.ErrBadRequest, err)
 	}
 	userInfo := &domain.User{
 		Email: reqBody.Email,
@@ -117,7 +118,7 @@ func (h *Handler) HandleUserSignup(w http.ResponseWriter, r *http.Request) error
 	var reqBody SignupRequest
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&reqBody); err != nil {
-		return apperror.ErrBadRequest
+		return errors.Join(apperror.ErrBadRequest, err)
 	}
 	
 	userinfo := &domain.User{
