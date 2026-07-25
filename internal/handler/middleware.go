@@ -6,12 +6,19 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"fmt"
 )
+
+func nothing() {
+	fmt.Println("nothing")
+}
 
 // AuthRequired はアクセストークンを検証し、context に userID を注入する
 func (h *Handler) AuthRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := h.extractTokenFromRequest(r)
+
+		nothing()
 
 		// トークンがない場合は認証エラー
 		if token == "" {
