@@ -2,8 +2,9 @@ name: Test
 
 on: 
   pull_request:
-    - 'go/**'
-    - '.github/workflows/test.yml'
+    paths:
+      - 'go/**'
+      - '.github/workflows/test.yml'
 
 jobs:
   test:
