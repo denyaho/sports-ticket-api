@@ -11,6 +11,7 @@ import (
 
 func nothing() {
 	fmt.Println("nothing")
+	fmt.Println("nothing")
 }
 
 // AuthRequired はアクセストークンを検証し、context に userID を注入する
