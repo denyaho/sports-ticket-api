@@ -11,14 +11,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var teamVenues = map[string]string {
-	"Team A": "Stadium A",
-	"Team B": "Stadium B",
-	"Team C": "Stadium C",
-	"Team D": "Stadium D",
-}
-
-
 var teamNames = []string{
 	"Team A",
 	"Team B",
@@ -125,7 +117,10 @@ func getSeatInfo(ctx context.Context, db *sql.DB) (map[string]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	seatInfo := make(map[string]int)
 
@@ -146,7 +141,9 @@ func getGameIDs(ctx context.Context, db *sql.DB) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var gameIDs []string
 	for rows.Next() {
@@ -209,7 +206,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close db connection: %v", err)
+		}
+	}()
+
 	err = _clearTables(context.Background(), db)
 	if err != nil {
 		log.Fatal(err)

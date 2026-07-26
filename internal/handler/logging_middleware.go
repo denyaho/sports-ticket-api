@@ -40,7 +40,6 @@ func (w *rwWrapper) Write(b []byte) (int, error) {
 func (w *rwWrapper) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 	w.rw.WriteHeader(statusCode)
-	return
 }
 
 const maxBytesSize = 1 << 20 // 1MB

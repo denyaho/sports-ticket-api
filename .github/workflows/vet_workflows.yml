@@ -1,18 +1,16 @@
-name: Test
-
-on: 
+on:
   push:
     paths:
       - 'go/**'
-      - '.github/workflows/test.yml'
+      - '.github/workflows/vet_workflows.yml'
 
 jobs:
-  test:
+  vet:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version-file: go/go.mod
           cache-dependency-path: go/go.sum
-      - run: go test ./... -v
+      - run: go vet ./...

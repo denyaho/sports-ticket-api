@@ -85,8 +85,9 @@ func (r *reservationRepository) CancelReservation(ctx context.Context, reservati
 		log.Printf("Error starting transaction: %v", err)
 		return apperror.ErrDatabase
 	}
-	defer tx.Rollback()
-
+	defer func() {
+		_ = tx.Rollback()
+	}()
 	query := `WITH c_reservation AS (
 			UPDATE reservations SET status = 'cancelled'
 			WHERE id = $1 AND user_id = $2
@@ -129,7 +130,9 @@ func (r *reservationRepository) PurchaseReservation(ctx context.Context, reserva
 		log.Printf("Error starting transaction: %v", err)
 		return nil, apperror.ErrDatabase
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	query := `WITH p_reservation AS (
 			UPDATE reservations SET status = 'confirmed'
@@ -146,7 +149,10 @@ func (r *reservationRepository) PurchaseReservation(ctx context.Context, reserva
 		log.Printf("Error updating reservation and tickets: %v", err)
 		return nil, apperror.ErrDatabase
 	}
-	defer rows.Close()
+
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	reservation := domain.Reservation{}
 	for rows.Next() {
@@ -176,6 +182,8 @@ func (r *reservationRepository) PurchaseReservation(ctx context.Context, reserva
 	if len(reservation.Tickets) == 0 {
 		return nil, apperror.ErrNotFound
 	}
+
+	_ = rows.Close()
 	if err := tx.Commit(); err != nil {
 		log.Printf("Error committing transaction: %v", err)
 		return nil, apperror.ErrDatabase
@@ -199,7 +207,10 @@ func (r *reservationRepository) GetUserReservations(ctx context.Context, userID 
 		log.Printf("Error executing query: %v", err)
 		return nil, apperror.ErrDatabase
 	}
-	defer rows.Close()
+
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	reservations := make(map[uuid.UUID]*domain.Reservation)
 	order := make([]uuid.UUID, 0)
@@ -265,7 +276,10 @@ func (r *reservationRepository) GetReservationByID(ctx context.Context, reservat
 		log.Printf("Error executing query: %v", err)
 		return nil, apperror.ErrDatabase
 	}
-	defer rows.Close()
+
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	reservation := domain.Reservation{}
 
@@ -316,7 +330,10 @@ func (r *reservationRepository) CreateReservation(ctx context.Context, reqBody *
 		log.Printf("Error starting transaction: %v", err)
 		return nil, apperror.ErrDatabase
 	}
-	defer tx.Rollback()
+
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	game_ID := reqBody.GameID
 	tickets := []uuid.UUID{}
@@ -346,28 +363,28 @@ func (r *reservationRepository) CreateReservation(ctx context.Context, reqBody *
 			return nil, apperror.ErrDatabase
 		}
 
+		defer func() {
+			_ = rows.Close()
+		}()
+
 		var ticket_ID uuid.UUID
 		for rows.Next() {
 			err := rows.Scan(&ticket_ID)
 			if err != nil {
-				rows.Close()
 				log.Printf("Error scanning row: %v", err)
 				return nil, apperror.ErrDatabase
 			}
 			ticke_IDs = append(ticke_IDs, ticket_ID)
 		}
 		if err := rows.Err(); err != nil {
-			rows.Close()
 			log.Printf("Error iterating rows: %v", err)
 			return nil, apperror.ErrDatabase
 		}
 		if len(ticke_IDs) < seatQuantity {
-			rows.Close()
 			log.Printf("Not enough available tickets for seat grade %s", seatGrade)
 			return nil, apperror.ErrInsufficientTickets
 		}
 		tickets = append(tickets, ticke_IDs...)
-		rows.Close()
 	}
 
 	var reservation_response domain.Reservation
@@ -407,7 +424,11 @@ func (r *reservationRepository) CreateReservation(ctx context.Context, reqBody *
 		log.Printf("Error updating tickets: %v", err)
 		return nil, apperror.ErrDatabase
 	}
-	defer rows.Close()
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
 	for rows.Next() {
 		var ticket_info domain.Tickets
 		err := rows.Scan(

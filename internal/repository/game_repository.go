@@ -5,12 +5,9 @@ import (
 	"database/sql"
 	"42tokyo-road-to-dena-server/internal/domain"
 	"42tokyo-road-to-dena-server/internal/apperror"
-	"errors"
 	"log"
 	"github.com/google/uuid"	
 )
-
-var ErrNotFound = errors.New("Not found")
 
 type GameRepository interface {
 	GetAllGames(ctx context.Context) ([]domain.Game, error)
@@ -41,7 +38,12 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 		log.Printf("Error executing query: %v", err)
 		return nil, apperror.ErrDatabase
 	}
-	defer rows.Close()
+
+	defer func() {
+		if err := rows.Close(); err != nil{
+			log.Printf("Error closing rows: %v", err)
+		}
+	}()
 
 	for rows.Next() {
 		var game domain.Game

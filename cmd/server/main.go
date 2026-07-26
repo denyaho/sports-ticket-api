@@ -43,10 +43,24 @@ func main() {
 
 	db, err := sql.Open(dbDriver, dsn)
 
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close db connection: %v", err)
+		}
+	}()
+	
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Printf("Failed to close db connection: %v", err)
+		}
+	}()
 	// ハンドラーの初期化
 	userrepo := repository.NewUserRepository(db)
 	userservice := service.NewUserService(userrepo)

@@ -41,9 +41,10 @@ func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID uu
 	if err != nil {
 		log.Printf("Error querying seats by game ID: %v", err)
 		return nil, apperror.ErrDatabase
-
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	for rows.Next() {
 		var seat domain.Seat
