@@ -6,6 +6,7 @@ import (
 	"42tokyo-road-to-dena-server/internal/domain"
 	"42tokyo-road-to-dena-server/internal/apperror"
 	"log"
+	"fmt"
 	"github.com/google/uuid"	
 )
 
@@ -35,8 +36,7 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 
 	rows, err := r.DB.QueryContext(ctx, query)
 	if err != nil {
-		log.Printf("Error executing query: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("execute query: %w: %w", apperror.ErrDatabase, err)
 	}
 
 	defer func() {
@@ -52,8 +52,7 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 			&game.HomeTeam.ID, &game.HomeTeam.Name,
 			&game.AwayTeam.ID, &game.AwayTeam.Name)
 		if err != nil {
-			log.Printf("Error scanning row: %v", err)
-			return nil, apperror.ErrDatabase
+			return nil, fmt.Errorf("scan row: %w: %w", apperror.ErrDatabase, err)
 		}
 		games = append(games, game)
 	}
@@ -80,8 +79,7 @@ func (r *postgreGamesRepository) GetGameByID(ctx context.Context, id uuid.UUID) 
 		&game.HomeTeam.ID, &game.HomeTeam.Name,
 		&game.AwayTeam.ID, &game.AwayTeam.Name); err != nil {
 		if err == sql.ErrNoRows {
-			log.Printf("Game with ID %s not found", id)
-			return nil, apperror.ErrNotFound
+			return nil, fmt.Errorf("game not found: %w: %w", apperror.ErrNotFound, err)
 		}
 		log.Printf("Error executing query: %v", err)
 		return nil, apperror.ErrDatabase

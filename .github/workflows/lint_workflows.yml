@@ -1,8 +1,14 @@
+name: Lint Workflows
+
 on:
   push:
     paths:
-      - '**'
+      - '**.go'
+      - 'go.sum'
+      - 'go.mod'
+      - '.golangci.yml'
       - '.github/workflows/lint_workflows.yml'
+
 
 jobs:
   lint:
@@ -13,4 +19,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
-      - run: golangci-lint run -v
+      - name: Lint Code
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2

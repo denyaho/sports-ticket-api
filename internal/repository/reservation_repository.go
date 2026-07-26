@@ -82,8 +82,7 @@ func (r *reservationRepository) CancelReservation(ctx context.Context, reservati
 
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
-		log.Printf("Error starting transaction: %v", err)
-		return apperror.ErrDatabase
+		return fmt.Errorf("error staring transaction: %w: %w", err, apperror.ErrDatabase)
 	}
 	defer func() {
 		_ = tx.Rollback()
@@ -103,8 +102,7 @@ func (r *reservationRepository) CancelReservation(ctx context.Context, reservati
 
 	result, err := tx.ExecContext(ctx, query, reservationID, userID)
 	if err != nil {
-		log.Printf("Error updating reservation and tickets: %v", err)
-		return apperror.ErrDatabase
+		return fmt.Errorf("error updating reservation and tickets: %w: %w", apperror.ErrDatabase, err)
 	}
 	affected, err := result.RowsAffected()
 	if err != nil {
@@ -115,8 +113,7 @@ func (r *reservationRepository) CancelReservation(ctx context.Context, reservati
 		return apperror.ErrNotFound
 	}
 	if err := tx.Commit(); err != nil {
-		log.Printf("Error committing transaction: %v", err)
-		return apperror.ErrDatabase
+		return fmt.Errorf("error committing transaction: %w: %w", apperror.ErrDatabase, err)
 	}
 	return nil
 }
@@ -127,8 +124,7 @@ func (r *reservationRepository) CancelReservation(ctx context.Context, reservati
 func (r *reservationRepository) PurchaseReservation(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error) {
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
-		log.Printf("Error starting transaction: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("error starting transaction: %w: %w", err, apperror.ErrDatabase)
 	}
 	defer func() {
 		_ = tx.Rollback()
@@ -146,8 +142,7 @@ func (r *reservationRepository) PurchaseReservation(ctx context.Context, reserva
 
 	rows, err := tx.QueryContext(ctx, query, reservationID, userID)
 	if err != nil {
-		log.Printf("Error updating reservation and tickets: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("error updating reservation and tickets: %w: %w", apperror.ErrDatabase, err)
 	}
 
 	defer func() {
@@ -185,8 +180,7 @@ func (r *reservationRepository) PurchaseReservation(ctx context.Context, reserva
 
 	_ = rows.Close()
 	if err := tx.Commit(); err != nil {
-		log.Printf("Error committing transaction: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("error committing transaction: %w: %w", apperror.ErrDatabase, err)
 	}
 
 	return &reservation, nil
@@ -204,8 +198,7 @@ func (r *reservationRepository) GetUserReservations(ctx context.Context, userID 
 
 	rows ,err := r.DB.QueryContext(ctx, query, userID)
 	if err != nil {
-		log.Printf("Error executing query: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("error executing query: %w: %w", apperror.ErrDatabase, err)
 	}
 
 	defer func() {
@@ -232,8 +225,7 @@ func (r *reservationRepository) GetUserReservations(ctx context.Context, userID 
 			&ticket.UpdatedAt,
 		)
 		if err != nil {
-			log.Printf("Error scanning row: %v", err)
-			return nil, apperror.ErrDatabase
+			return nil, fmt.Errorf("error scanning row: %w: %w", apperror.ErrDatabase, err)
 		}
 		resMap, ok := reservations[reservation.ID]
 		if !ok {
@@ -248,8 +240,7 @@ func (r *reservationRepository) GetUserReservations(ctx context.Context, userID 
 		resMap.Tickets = append(resMap.Tickets, ticket)
 	}
 	if err := rows.Err(); err != nil {
-		log.Printf("Error iterating rows: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("error iterating rows: %w: %w", apperror.ErrDatabase, err)
 	}
 	if len(reservations) == 0 {
 		return nil, apperror.ErrNotFound
@@ -273,8 +264,7 @@ func (r *reservationRepository) GetReservationByID(ctx context.Context, reservat
 
 	rows ,err := r.DB.QueryContext(ctx, query, reservationID, userID)
 	if err != nil {
-		log.Printf("Error executing query: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("error executing query: %w: %w", apperror.ErrDatabase, err)
 	}
 
 	defer func() {
@@ -300,14 +290,12 @@ func (r *reservationRepository) GetReservationByID(ctx context.Context, reservat
 			&ticket.UpdatedAt,
 		)
 		if err != nil {
-			log.Printf("Error scanning row: %v", err)
-			return nil, apperror.ErrDatabase
+			return nil, fmt.Errorf("error scanning row: %w: %w", apperror.ErrDatabase, err)
 		}
 		reservation.Tickets = append(reservation.Tickets, ticket)
 	}
 	if err := rows.Err(); err != nil {
-		log.Printf("Error iterating rows: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("error iterating rows: %w: %w", apperror.ErrDatabase, err)
 	}
 	if reservation.ID == uuid.Nil {
 		return nil, apperror.ErrNotFound
@@ -359,8 +347,7 @@ func (r *reservationRepository) CreateReservation(ctx context.Context, reqBody *
 
 		rows, err := tx.QueryContext(ctx, query, game_ID, seatGrade, seatQuantity)
 		if err != nil {
-			log.Printf("Error executing query: %v", err)
-			return nil, apperror.ErrDatabase
+			return nil, fmt.Errorf("error executing query: %w: %w", apperror.ErrDatabase, err)
 		}
 
 		defer func() {
@@ -371,18 +358,15 @@ func (r *reservationRepository) CreateReservation(ctx context.Context, reqBody *
 		for rows.Next() {
 			err := rows.Scan(&ticket_ID)
 			if err != nil {
-				log.Printf("Error scanning row: %v", err)
-				return nil, apperror.ErrDatabase
+				return nil, fmt.Errorf("error scanning row: %w: %w", apperror.ErrDatabase, err)
 			}
 			ticke_IDs = append(ticke_IDs, ticket_ID)
 		}
 		if err := rows.Err(); err != nil {
-			log.Printf("Error iterating rows: %v", err)
-			return nil, apperror.ErrDatabase
+			return nil, fmt.Errorf("error iterating rows: %w: %w", apperror.ErrDatabase, err)
 		}
 		if len(ticke_IDs) < seatQuantity {
-			log.Printf("Not enough available tickets for seat grade %s", seatGrade)
-			return nil, apperror.ErrInsufficientTickets
+			return nil, fmt.Errorf("not enough available tickets for seat grade %s: %w", seatGrade, apperror.ErrInsufficientTickets)
 		}
 		tickets = append(tickets, ticke_IDs...)
 	}
@@ -417,12 +401,10 @@ func (r *reservationRepository) CreateReservation(ctx context.Context, reqBody *
 
 	updateQuery := fmt.Sprintf(`UPDATE tickets SET reservation_id = $1, status = 'reserved' WHERE id IN (%s) returning id, seat_id, price, status, created_at, updated_at`, strings.Join(placeholders, ", "))
 
-	log.Printf("Executing update query: %s with args: %v", updateQuery, args)
 
 	rows, err := tx.QueryContext(ctx, updateQuery, args...)
 	if err != nil {
-		log.Printf("Error updating tickets: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("error updating tickets: %w: %w", apperror.ErrDatabase, err)
 	}
 
 	defer func() {
@@ -440,19 +422,16 @@ func (r *reservationRepository) CreateReservation(ctx context.Context, reqBody *
 			&ticket_info.UpdatedAt,
 		)
 		if err != nil {
-			log.Printf("Error scanning row: %v", err)
-			return nil, apperror.ErrDatabase
+			return nil, fmt.Errorf("error scanning row: %w: %w", apperror.ErrDatabase, err)
 		}
 		tickets_response = append(tickets_response, ticket_info)
 	}
 	if err := rows.Err(); err != nil {
-		log.Printf("Error iterating rows: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("error iterating rows: %w: %w", apperror.ErrDatabase, err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		log.Printf("Error committing transaction: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("error committing transaction: %w: %w", apperror.ErrDatabase, err)
 	}
 	reservation_response.Tickets = tickets_response
 

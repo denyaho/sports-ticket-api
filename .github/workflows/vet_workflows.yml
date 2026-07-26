@@ -1,7 +1,7 @@
 on:
   push:
     paths:
-      - '**'
+      - '**.go'
       - '.github/workflows/vet_workflows.yml'
 
 jobs:
