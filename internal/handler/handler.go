@@ -1,14 +1,14 @@
 package handler
 
 import (
-	"42tokyo-road-to-dena-server/authbundle"
-	"42tokyo-road-to-dena-server/internal/service"
 	"encoding/json"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
+
+	"42tokyo-road-to-dena-server/authbundle"
+	"42tokyo-road-to-dena-server/internal/service"
 )
 
 func New(authbundle *authbundle.AuthBundle,
@@ -19,24 +19,24 @@ func New(authbundle *authbundle.AuthBundle,
 	reservationService service.ReservationService,
 	logger *slog.Logger) *Handler {
 	return &Handler{
-		authBundleService: authbundle,
-		authConfig:        authConfig,
-		userservice:       userservice,
-		gameService:		gameService,
-		seatsService:      seatsService,
+		authBundleService:  authbundle,
+		authConfig:         authConfig,
+		userservice:        userservice,
+		gameService:        gameService,
+		seatsService:       seatsService,
 		reservationService: reservationService,
-		logger:            logger,
+		logger:             logger,
 	}
 }
 
 type Handler struct {
-	authBundleService *authbundle.AuthBundle
-	authConfig        *authbundle.AuthConfig	
-	userservice service.UserService
-	gameService service.GameService
-	seatsService service.SeatsService
+	authBundleService  *authbundle.AuthBundle
+	authConfig         *authbundle.AuthConfig
+	userservice        service.UserService
+	gameService        service.GameService
+	seatsService       service.SeatsService
 	reservationService service.ReservationService
-	logger            *slog.Logger
+	logger             *slog.Logger
 }
 
 func (h *Handler) toHandler(fn func(w http.ResponseWriter, r *http.Request) error) http.HandlerFunc {
@@ -63,7 +63,6 @@ func (h *Handler) Routes() http.Handler {
 
 	mux.HandleFunc("GET /api/games/{id}/seats", h.toHandler(h.HandleGetSeatsByGameID))
 
-
 	mux.Handle("POST /api/reservations", h.AuthRequired(h.toHandler(h.HandleCreateReservation)))
 
 	mux.Handle("GET /api/reservations", h.AuthRequired(h.toHandler(h.HandleGetUserReservations)))
@@ -73,7 +72,6 @@ func (h *Handler) Routes() http.Handler {
 	mux.Handle("PUT /api/reservations/{id}/purchase", h.AuthRequired(h.toHandler(h.HandlePurchaseReservation)))
 
 	mux.Handle("DELETE /api/reservations/{id}", h.AuthRequired(h.toHandler(h.HandleCancelReservation)))
-
 
 	// Swagger/OpenAPI 配信
 	mux.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
@@ -92,12 +90,12 @@ func (h *Handler) Routes() http.Handler {
 	return h.Logging(mux)
 }
 
-func (h *Handler) respondJSON(w http.ResponseWriter, data interface{}, status int) {
+func (h *Handler) respondJSON(w http.ResponseWriter, data any, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	
+
 	if err := json.NewEncoder(w).Encode(data); err != nil {
-		log.Printf("Failed to encode response: %v", err)
+		h.logger.Error("Failed to encode response", "error", err)
 	}
 }
 

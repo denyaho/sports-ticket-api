@@ -1,16 +1,16 @@
 package handler
 
 import (
+	"context"
+	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/http"
-	"context"
-	"encoding/json"
-	"database/sql"
+
 	"42tokyo-road-to-dena-server/internal/apperror"
 )
 
 func (h *Handler) HandleError(w http.ResponseWriter, r *http.Request, err error) {
-
 	SetErrorInRequestState(r.Context(), err)
 
 	var maxErr *http.MaxBytesError
@@ -28,7 +28,7 @@ func (h *Handler) HandleError(w http.ResponseWriter, r *http.Request, err error)
 	case errors.Is(err, context.Canceled):
 		h.respondError(w, err, http.StatusRequestTimeout) // 408 Request Timeout
 	case errors.Is(err, context.DeadlineExceeded):
-		h.respondError(w, err, http.StatusGatewayTimeout)// 504 Gateway Timeout
+		h.respondError(w, err, http.StatusGatewayTimeout) // 504 Gateway Timeout
 	case errors.Is(err, sql.ErrConnDone):
 		h.respondError(w, err, http.StatusInternalServerError)
 	case errors.Is(err, sql.ErrNoRows):

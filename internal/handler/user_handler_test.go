@@ -1,19 +1,21 @@
 package handler
 
 import (
-	"testing"
-	"42tokyo-road-to-dena-server/internal/domain"
-	"42tokyo-road-to-dena-server/internal/apperror"
 	"context"
-	"github.com/google/uuid"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"testing"
+
+	"42tokyo-road-to-dena-server/internal/apperror"
+	"42tokyo-road-to-dena-server/internal/domain"
+
+	"github.com/google/uuid"
 )
 
 type StubuserService struct {
-	FakeCreateUser func(ctx context.Context, user *domain.User) (uuid.UUID, error)
-	FakeFindUserByID func(ctx context.Context, id uuid.UUID) (*domain.User, error)
+	FakeCreateUser       func(ctx context.Context, user *domain.User) (uuid.UUID, error)
+	FakeFindUserByID     func(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	FakeAuthenticateUser func(ctx context.Context, user *domain.User) (uuid.UUID, error)
 }
 
@@ -29,7 +31,6 @@ func (s *StubuserService) AuthenticateUser(ctx context.Context, user *domain.Use
 	return s.FakeAuthenticateUser(ctx, user)
 }
 
-
 func TestHandleUserSignup(t *testing.T) {
 	successReqBody := `{
 		"name": "testuser",
@@ -39,53 +40,55 @@ func TestHandleUserSignup(t *testing.T) {
 	failReqBody := `"invalid-json"`
 
 	signupTests := []struct {
-		name string
+		name         string
 		setupContext func() context.Context
-		reqBody string
-		fakeErr error
-		expectedErr int
-	}{	
+		reqBody      string
+		fakeErr      error
+		expectedErr  int
+	}{
 		{
-			name: "InternalServerError",
+			name:         "InternalServerError",
 			setupContext: createContext,
-			reqBody: successReqBody,
-			fakeErr: apperror.ErrInternal,
-			expectedErr: http.StatusInternalServerError,
+			reqBody:      successReqBody,
+			fakeErr:      apperror.ErrInternal,
+			expectedErr:  http.StatusInternalServerError,
 		},
 		{
-			name: "BadRequest",
+			name:         "BadRequest",
 			setupContext: createContext,
-			reqBody: failReqBody,
-			fakeErr: nil,
-			expectedErr: http.StatusBadRequest,
+			reqBody:      failReqBody,
+			fakeErr:      nil,
+			expectedErr:  http.StatusBadRequest,
 		},
 		{
-			name: "duplicateEmail",
+			name:         "duplicateEmail",
 			setupContext: createContext,
-			reqBody: successReqBody,
-			fakeErr: apperror.ErrDuplicateEmail,
-			expectedErr: http.StatusConflict,
+			reqBody:      successReqBody,
+			fakeErr:      apperror.ErrDuplicateEmail,
+			expectedErr:  http.StatusConflict,
 		},
 		{
-			name: "databaseError",
+			name:         "databaseError",
 			setupContext: createContext,
-			reqBody: successReqBody,
-			fakeErr: apperror.ErrDatabase,
-			expectedErr: http.StatusInternalServerError,
+			reqBody:      successReqBody,
+			fakeErr:      apperror.ErrDatabase,
+			expectedErr:  http.StatusInternalServerError,
 		},
 		{
-			name: "User Not Created",
+			name:         "User Not Created",
 			setupContext: createContext,
-			reqBody: successReqBody,
-			fakeErr: apperror.ErrUserNotCreated,
-			expectedErr: http.StatusInternalServerError,
+			reqBody:      successReqBody,
+			fakeErr:      apperror.ErrUserNotCreated,
+			expectedErr:  http.StatusInternalServerError,
 		},
 	}
+	t.Parallel()
 	for _, tt := range signupTests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			h := &Handler{
 				userservice: &StubuserService{
-					FakeCreateUser: func(ctx context.Context, user *domain.User) (uuid.UUID, error) {
+					FakeCreateUser: func(_ context.Context, _ *domain.User) (uuid.UUID, error) {
 						return uuid.New(), tt.fakeErr
 					},
 				},
@@ -100,56 +103,57 @@ func TestHandleUserSignup(t *testing.T) {
 }
 
 func TestHandleGetUser(t *testing.T) {
-
 	mockUserInfo := &domain.User{
-		ID: uuid.New(),
+		ID:       uuid.New(),
 		Username: "testuser",
-		Email: "testuser@example.com",
+		Email:    "testuser@example.com",
 	}
 
 	FindUserTests := []struct {
-		name string
+		name         string
 		setupContext func() context.Context
-		userInfo *domain.User
-		fakeErr error
-		expectedErr int
+		userInfo     *domain.User
+		fakeErr      error
+		expectedErr  int
 	}{
 		{
-			name: "success",
+			name:         "success",
 			setupContext: createContext,
-			userInfo: mockUserInfo,
-			fakeErr: nil,
-			expectedErr: http.StatusOK,
+			userInfo:     mockUserInfo,
+			fakeErr:      nil,
+			expectedErr:  http.StatusOK,
 		},
 		{
 			name: "Not authorized",
-			setupContext: func() context.Context{
+			setupContext: func() context.Context {
 				return context.Background()
 			},
-			userInfo: nil,
-			fakeErr: nil,
+			userInfo:    nil,
+			fakeErr:     nil,
 			expectedErr: http.StatusUnauthorized,
 		},
 		{
-			name: "user not found",
+			name:         "user not found",
 			setupContext: createContext,
-			userInfo: nil,
-			fakeErr: apperror.ErrUserNotFound,
-			expectedErr: http.StatusNotFound,
+			userInfo:     nil,
+			fakeErr:      apperror.ErrUserNotFound,
+			expectedErr:  http.StatusNotFound,
 		},
 		{
-			name: "database error",
+			name:         "database error",
 			setupContext: createContext,
-			userInfo: nil,
-			fakeErr: apperror.ErrDatabase,
-			expectedErr: http.StatusInternalServerError,
+			userInfo:     nil,
+			fakeErr:      apperror.ErrDatabase,
+			expectedErr:  http.StatusInternalServerError,
 		},
 	}
+	t.Parallel()
 	for _, tt := range FindUserTests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			h := &Handler{
 				userservice: &StubuserService{
-					FakeFindUserByID: func(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+					FakeFindUserByID: func(_ context.Context, _ uuid.UUID) (*domain.User, error) {
 						return tt.userInfo, tt.fakeErr
 					},
 				},
@@ -160,7 +164,6 @@ func TestHandleGetUser(t *testing.T) {
 			h.toHandler(h.HandleGetUser)(response, request)
 			assertStatus(t, response.Code, tt.expectedErr)
 		})
-
 	}
 }
 
@@ -171,46 +174,48 @@ func TestHandleUserLogin(t *testing.T) {
 	}`
 
 	loginTests := []struct {
-		name string
+		name         string
 		setupContext func() context.Context
-		reqBody string
-		fakeErr error
-		expectedErr int
+		reqBody      string
+		fakeErr      error
+		expectedErr  int
 	}{
 		{
-			name: "user not found",
+			name:         "user not found",
 			setupContext: createContext,
-			reqBody: reqBody,
-			fakeErr: apperror.ErrUserNotFound,
-			expectedErr: http.StatusNotFound,
+			reqBody:      reqBody,
+			fakeErr:      apperror.ErrUserNotFound,
+			expectedErr:  http.StatusNotFound,
 		},
 		{
-			name: "bad request",
+			name:         "bad request",
 			setupContext: createContext,
-			reqBody: `"invalid-request"`,
-			fakeErr: nil,
-			expectedErr: http.StatusBadRequest,
+			reqBody:      `"invalid-request"`,
+			fakeErr:      nil,
+			expectedErr:  http.StatusBadRequest,
 		},
 		{
-			name: "database error",
+			name:         "database error",
 			setupContext: createContext,
-			reqBody: reqBody,
-			fakeErr: apperror.ErrDatabase,
-			expectedErr: http.StatusInternalServerError,
+			reqBody:      reqBody,
+			fakeErr:      apperror.ErrDatabase,
+			expectedErr:  http.StatusInternalServerError,
 		},
 		{
-			name: "authentication failed",
+			name:         "authentication failed",
 			setupContext: createContext,
-			reqBody: reqBody,
-			fakeErr: apperror.ErrAuthenticationFailed,
-			expectedErr: http.StatusUnauthorized,
+			reqBody:      reqBody,
+			fakeErr:      apperror.ErrAuthenticationFailed,
+			expectedErr:  http.StatusUnauthorized,
 		},
 	}
+	t.Parallel()
 	for _, tt := range loginTests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			h := &Handler{
 				userservice: &StubuserService{
-					FakeAuthenticateUser: func(ctx context.Context, user *domain.User) (uuid.UUID, error) {
+					FakeAuthenticateUser: func(_ context.Context, _ *domain.User) (uuid.UUID, error) {
 						return uuid.New(), tt.fakeErr
 					},
 				},
@@ -222,5 +227,4 @@ func TestHandleUserLogin(t *testing.T) {
 			assertStatus(t, response.Code, tt.expectedErr)
 		})
 	}
-	
 }

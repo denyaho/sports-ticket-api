@@ -1,13 +1,15 @@
 package handler
 
 import (
-	"testing"
 	"context"
-	"net/http/httptest"
 	"net/http"
-	"github.com/google/uuid"
-	"42tokyo-road-to-dena-server/internal/domain"
+	"net/http/httptest"
+	"testing"
+
 	"42tokyo-road-to-dena-server/internal/apperror"
+	"42tokyo-road-to-dena-server/internal/domain"
+
+	"github.com/google/uuid"
 )
 
 type StubgameService struct {
@@ -23,92 +25,93 @@ func (s *StubgameService) GetGameByID(ctx context.Context, id uuid.UUID) (*domai
 	return s.FakeGetGameByID(ctx, id)
 }
 
-
 func TestGetAllGames(t *testing.T) {
-
 	getAllGamesTest := []struct {
-		name string
+		name         string
 		setupContext func() context.Context
-		fakeErr error
-		expectedErr int
+		fakeErr      error
+		expectedErr  int
 	}{
 		{
-			name: "success",
+			name:         "success",
 			setupContext: createContext,
-			fakeErr: nil,
-			expectedErr: http.StatusOK,
+			fakeErr:      nil,
+			expectedErr:  http.StatusOK,
 		},
 		{
-			name: "InternalServerError",
+			name:         "InternalServerError",
 			setupContext: createContext,
-			fakeErr: apperror.ErrDatabase,
-			expectedErr: http.StatusInternalServerError,
+			fakeErr:      apperror.ErrDatabase,
+			expectedErr:  http.StatusInternalServerError,
 		},
 	}
+	t.Parallel()
 
 	for _, tt := range getAllGamesTest {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			h := &Handler{
 				gameService: &StubgameService{
-					FakeGetAllGames: func(ctx context.Context) ([]domain.Game, error) {
+					FakeGetAllGames: func(_ context.Context) ([]domain.Game, error) {
 						return []domain.Game{}, tt.fakeErr
+					},
 				},
-			},
-		}
-		request := httptest.NewRequestWithContext(tt.setupContext(), "GET", "/api/games", nil)
-		response := httptest.NewRecorder()
+			}
+			request := httptest.NewRequestWithContext(tt.setupContext(), "GET", "/api/games", nil)
+			response := httptest.NewRecorder()
 
-		h.toHandler(h.HandleGetAllGames)(response, request)
-		assertStatus(t, response.Code, tt.expectedErr)
+			h.toHandler(h.HandleGetAllGames)(response, request)
+			assertStatus(t, response.Code, tt.expectedErr)
 		})
 	}
 }
 
 func TestGetGameByID(t *testing.T) {
-
 	gameID := "ff79a6c3-50e4-11f1-899d-bc2411066ccc"
 
 	getGameByIDTest := []struct {
-		name string
+		name         string
 		setupContext func() context.Context
-		gameID string
-		fakeErr error
-		expectedErr int
+		gameID       string
+		fakeErr      error
+		expectedErr  int
 	}{
 		{
-			name: "success",
+			name:         "success",
 			setupContext: createContext,
-			gameID: gameID,
-			fakeErr: nil,
-			expectedErr: http.StatusOK,
+			gameID:       gameID,
+			fakeErr:      nil,
+			expectedErr:  http.StatusOK,
 		},
 		{
-			name: "InternalServerError",
+			name:         "InternalServerError",
 			setupContext: createContext,
-			gameID: gameID,
-			fakeErr: apperror.ErrDatabase,
-			expectedErr: http.StatusInternalServerError,
+			gameID:       gameID,
+			fakeErr:      apperror.ErrDatabase,
+			expectedErr:  http.StatusInternalServerError,
 		},
 		{
-			name: "BadRequest",
+			name:         "BadRequest",
 			setupContext: createContext,
-			gameID: "invalid-uuid",
-			fakeErr: nil,
-			expectedErr: http.StatusBadRequest,
+			gameID:       "invalid-uuid",
+			fakeErr:      nil,
+			expectedErr:  http.StatusBadRequest,
 		},
 		{
-			name: "NotFound",
+			name:         "NotFound",
 			setupContext: createContext,
-			gameID: gameID,
-			fakeErr: apperror.ErrNotFound,
-			expectedErr: http.StatusNotFound,
+			gameID:       gameID,
+			fakeErr:      apperror.ErrNotFound,
+			expectedErr:  http.StatusNotFound,
 		},
 	}
+	t.Parallel()
 	for _, tt := range getGameByIDTest {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			h := &Handler{
 				gameService: &StubgameService{
-					FakeGetGameByID: func(ctx context.Context, id uuid.UUID) (*domain.Game, error) {
+					FakeGetGameByID: func(_ context.Context, _ uuid.UUID) (*domain.Game, error) {
 						return &domain.Game{}, tt.fakeErr
 					},
 				},
@@ -122,4 +125,3 @@ func TestGetGameByID(t *testing.T) {
 		})
 	}
 }
-

@@ -1,18 +1,19 @@
 package config
 
 import (
-	"os"
 	"fmt"
-	"github.com/joho/godotenv"
-	"log"
+	"log/slog"
+	"os"
 	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Server ServerConfig
+	Server   ServerConfig
 	Database DatabaseConfig
-	Auth AuthConfig_tmp
+	Auth     AuthConfigTmp
 }
 
 type ServerConfig struct {
@@ -21,21 +22,21 @@ type ServerConfig struct {
 }
 
 type DatabaseConfig struct {
-	User string
+	User     string
 	Password string
-	Name string
-	Host string
-	Port string
+	Name     string
+	Host     string
+	Port     string
 }
 
-type AuthConfig_tmp struct {
-	JWTSecret string
-	JWTIssuer string
-	JWTAudience string
-	AccessTokenTTL time.Duration
+type AuthConfigTmp struct {
+	JWTSecret       string
+	JWTIssuer       string
+	JWTAudience     string
+	AccessTokenTTL  time.Duration
 	RefreshTokenTTL time.Duration
-	CookieDomain string
-	CookieSecure bool
+	CookieDomain    string
+	CookieSecure    bool
 }
 
 func _getEnvBool(key string, defaultVal bool) bool {
@@ -52,7 +53,7 @@ func _getEnvBool(key string, defaultVal bool) bool {
 
 func Load() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
-		log.Printf("No .env file found,")
+		slog.Info("No .env file found, using environment variables")
 	}
 	accessTokenTTL, err := strconv.Atoi(getEnv("ACCESSTTL", "15"))
 	if err != nil {
@@ -63,38 +64,35 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid REFRESHTTL value: %w", err)
 	}
 
-
-
-
 	cfg := &Config{
 		Server: ServerConfig{
 			Port: getEnv("SERVER_PORT", "8080"),
 			Host: getEnv("SERVER_HOST", "0.0.0.0"),
 		},
 		Database: DatabaseConfig{
-			User: getEnv("DB_USER",""),
-			Password: getEnv("DB_PASSWORD",""),
-			Name: getEnv("DB_NAME",""),
-			Host: getEnv("DB_HOST",""),
-			Port: getEnv("DB_PORT", "5432"),
+			User:     getEnv("DB_USER", ""),
+			Password: getEnv("DB_PASSWORD", ""),
+			Name:     getEnv("DB_NAME", ""),
+			Host:     getEnv("DB_HOST", ""),
+			Port:     getEnv("DB_PORT", "5432"),
 		},
-		Auth: AuthConfig_tmp{
-			JWTSecret: getEnv("JWTSECRET", ""),
-			JWTIssuer: getEnv("JWTISSUER", ""),
-			JWTAudience: getEnv("JWTAUDIENCE", ""),
-			AccessTokenTTL: time.Duration(accessTokenTTL) * time.Minute,
+		Auth: AuthConfigTmp{
+			JWTSecret:       getEnv("JWTSECRET", ""),
+			JWTIssuer:       getEnv("JWTISSUER", ""),
+			JWTAudience:     getEnv("JWTAUDIENCE", ""),
+			AccessTokenTTL:  time.Duration(accessTokenTTL) * time.Minute,
 			RefreshTokenTTL: time.Duration(refreshTokenTTL) * time.Minute,
-			CookieDomain: getEnv("COOKIE_DOMAIN", ""),
-			CookieSecure: _getEnvBool("COOKIE_SECURE", true),
+			CookieDomain:    getEnv("COOKIE_DOMAIN", ""),
+			CookieSecure:    _getEnvBool("COOKIE_SECURE", true),
 		},
 	}
-	if cfg.Database.User == ""{
+	if cfg.Database.User == "" {
 		return nil, fmt.Errorf("DB_USER is required")
-	} else if cfg.Database.Password == ""{
+	} else if cfg.Database.Password == "" {
 		return nil, fmt.Errorf("DB_PASSWORD is required")
-	} else if cfg.Database.Name == ""{
+	} else if cfg.Database.Name == "" {
 		return nil, fmt.Errorf("DB_NAME is required")
-	} else if cfg.Database.Host == ""{
+	} else if cfg.Database.Host == "" {
 		return nil, fmt.Errorf("DB_HOST is required")
 	}
 

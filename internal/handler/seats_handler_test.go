@@ -1,62 +1,64 @@
 package handler
 
 import (
-	"testing"
-	"42tokyo-road-to-dena-server/internal/domain"
-	"42tokyo-road-to-dena-server/internal/apperror"
 	"context"
-	"github.com/google/uuid"
 	"net/http"
 	"net/http/httptest"
+	"testing"
+
+	"42tokyo-road-to-dena-server/internal/apperror"
+	"42tokyo-road-to-dena-server/internal/domain"
+
+	"github.com/google/uuid"
 )
 
 type StubseatsService struct {
 	FakeGetSeatsByGameID func(ctx context.Context, gameID uuid.UUID) ([]domain.Seat, error)
 }
 
-
 func (s *StubseatsService) GetSeatsByGameID(ctx context.Context, gameID uuid.UUID) ([]domain.Seat, error) {
 	return s.FakeGetSeatsByGameID(ctx, gameID)
 }
 
 func TestGetSeatsByGameID(t *testing.T) {
-
 	gameID := "00000000-0000-0000-0000-000000000001"
 
 	seatsTests := []struct {
-		name string
+		name         string
 		setupContext func() context.Context
-		gameID string
-		fakeErr error
-		expectedErr int
+		gameID       string
+		fakeErr      error
+		expectedErr  int
 	}{
 		{
-			name: "success",
+			name:         "success",
 			setupContext: createContext,
-			gameID: gameID,
-			fakeErr: nil,
-			expectedErr: http.StatusOK,
+			gameID:       gameID,
+			fakeErr:      nil,
+			expectedErr:  http.StatusOK,
 		},
 		{
-			name: "InternalServerError",
+			name:         "InternalServerError",
 			setupContext: createContext,
-			gameID: gameID,
-			fakeErr: apperror.ErrDatabase,
-			expectedErr: http.StatusInternalServerError,
+			gameID:       gameID,
+			fakeErr:      apperror.ErrDatabase,
+			expectedErr:  http.StatusInternalServerError,
 		},
 		{
-			name: "BadRequest",
+			name:         "BadRequest",
 			setupContext: createContext,
-			gameID: "invalid-uuid",
-			fakeErr: apperror.ErrBadRequest,
-			expectedErr: http.StatusBadRequest,
+			gameID:       "invalid-uuid",
+			fakeErr:      apperror.ErrBadRequest,
+			expectedErr:  http.StatusBadRequest,
 		},
 	}
+	t.Parallel()
 	for _, tt := range seatsTests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			h := &Handler{
 				seatsService: &StubseatsService{
-					FakeGetSeatsByGameID: func(ctx context.Context, gameID uuid.UUID) ([]domain.Seat, error) {
+					FakeGetSeatsByGameID: func(_ context.Context, _ uuid.UUID) ([]domain.Seat, error) {
 						return []domain.Seat{}, tt.fakeErr
 					},
 				},

@@ -1,12 +1,13 @@
 package handler
 
 import (
-	"42tokyo-road-to-dena-server/authbundle"
-	"42tokyo-road-to-dena-server/internal/apperror"
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
-	"fmt"
+
+	"42tokyo-road-to-dena-server/authbundle"
+	"42tokyo-road-to-dena-server/internal/apperror"
 )
 
 func nothing() {
@@ -24,7 +25,7 @@ func (h *Handler) AuthRequired(next http.Handler) http.Handler {
 		// トークンがない場合は認証エラー
 		if token == "" {
 			h.HandleError(w, r, apperror.ErrUnauthorized)
-			return 
+			return
 		}
 		// トークンを検証し、claims から userID を取得
 		if h.authBundleService == nil {

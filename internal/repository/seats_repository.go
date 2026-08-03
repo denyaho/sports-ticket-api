@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/google/uuid"
-	"42tokyo-road-to-dena-server/internal/domain"
+
 	"42tokyo-road-to-dena-server/internal/apperror"
+	"42tokyo-road-to-dena-server/internal/domain"
+
+	"github.com/google/uuid"
 )
 
 type SeatsRepository interface {
@@ -22,7 +24,6 @@ func NewSeatsRepository(db *sql.DB) SeatsRepository {
 }
 
 func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID uuid.UUID) ([]domain.Seat, error) {
-
 	query := `SELECT 
 	seats.grade, seats.price,
 	COUNT(*) AS total_seats,
@@ -47,13 +48,13 @@ func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID uu
 
 	for rows.Next() {
 		var seat domain.Seat
-		err := rows.Scan(&seat.Grade, &seat.Price, &seat.Total, &seat.Available, &seat.Reserved, &seat.Sold)
+		err = rows.Scan(&seat.Grade, &seat.Price, &seat.Total, &seat.Available, &seat.Reserved, &seat.Sold)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning seat: %w: %w", apperror.ErrDatabase, err)
 		}
 		seats = append(seats, seat)
 	}
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating rows: %w: %w", apperror.ErrDatabase, err)
 	}
 	return seats, nil

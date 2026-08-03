@@ -1,16 +1,17 @@
 package service
 
-import(
+import (
 	"context"
+	"fmt"
+
+	"42tokyo-road-to-dena-server/authbundle"
+	"42tokyo-road-to-dena-server/internal/apperror"
 	"42tokyo-road-to-dena-server/internal/domain"
 	"42tokyo-road-to-dena-server/internal/repository"
-	"42tokyo-road-to-dena-server/internal/apperror"
-	"42tokyo-road-to-dena-server/authbundle"
-	"fmt"
+
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
-
 
 type UserService interface {
 	CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error)
@@ -37,9 +38,9 @@ func (s *userService) CreateUser(ctx context.Context, user *domain.User) (uuid.U
 		return uuid.Nil, fmt.Errorf("failed to generate user ID: %w", err)
 	}
 	userToSave := &domain.User{
-		ID: id,
+		ID:       id,
 		Username: user.Username,
-		Email: user.Email,
+		Email:    user.Email,
 		Password: hashedPassword,
 	}
 	return s.repo.CreateUser(ctx, userToSave)
@@ -49,14 +50,13 @@ func (s *userService) FindUserByID(ctx context.Context, id uuid.UUID) (*domain.U
 	return s.repo.FindUserByID(ctx, id)
 }
 
-// パスワード検証
+// CheckPassword compares a plaintext password with a hashed password and returns true if they match.
 func CheckPassword(password, hashedPassword string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	return err == nil
 }
 
 func (s *userService) AuthenticateUser(ctx context.Context, user *domain.User) (uuid.UUID, error) {
-
 	password := user.Password
 	userinfo, err := s.repo.GetUserByEmail(ctx, user.Email)
 	if err != nil {

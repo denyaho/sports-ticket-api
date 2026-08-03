@@ -9,13 +9,14 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"42tokyo-road-to-dena-server/internal/apperror"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
-	"42tokyo-road-to-dena-server/internal/apperror"
 )
-
 
 // ============================================================================
 // 認証機能統合ファイル
@@ -23,12 +24,12 @@ import (
 // このままでも利用可能ですが、アーキテクチャに合わせて適切に分割することを推奨します
 // ============================================================================
 
-// コンテキストで使用するキー
+// A contextKey is a custom type to avoid context key collisions.
 type contextKey string
 
 const UserIDKey contextKey = "userID"
 
-// リクエスト/レスポンス型
+// A AuthLoginRequest はログインリクエストの型です
 type AuthLoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -43,7 +44,7 @@ type AuthTokensResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-// エンティティ
+// RefreshToken はリフレッシュトークンの型です
 type RefreshToken struct {
 	ID        uuid.UUID    `db:"id"`
 	UserID    uuid.UUID    `db:"user_id"`
@@ -55,12 +56,12 @@ type RefreshToken struct {
 	DeletedAt sql.NullTime `db:"deleted_at"`
 }
 
-// リフレッシュトークンの有効期限切れ判定
+// IsExpired returns true if the refresh token is expired, false otherwise.
 func (r *RefreshToken) IsExpired() bool {
 	return r.ExpiresAt.Before(time.Now())
 }
 
-// リフレッシュトークンの失効済み判定
+// IsRevoked returns true if the refresh token is revoked, false otherwise.
 func (r *RefreshToken) IsRevoked() bool {
 	return r.RevokedAt != nil
 }
@@ -79,12 +80,12 @@ type RefreshTokenStore struct {
 	db *sqlx.DB
 }
 
-// RefreshTokenStore のコンストラクタ
+// NewRefreshTokenStore returns a new instance of RefreshTokenStore.
 func NewRefreshTokenStore(db *sqlx.DB) *RefreshTokenStore {
 	return &RefreshTokenStore{db: db}
 }
 
-// リフレッシュトークンの保存
+// Create saves a new refresh token.
 func (st *RefreshTokenStore) Create(ctx context.Context, token *RefreshToken) error {
 	query := `
 		INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at, updated_at)
@@ -101,7 +102,7 @@ func (st *RefreshTokenStore) Create(ctx context.Context, token *RefreshToken) er
 	return err
 }
 
-// ハッシュでリフレッシュトークンを取得
+// GetByTokenHash retrieves a refresh token by its hash.
 func (st *RefreshTokenStore) GetByTokenHash(ctx context.Context, tokenHash string) (*RefreshToken, error) {
 	var token RefreshToken
 	query := `
@@ -115,14 +116,14 @@ func (st *RefreshTokenStore) GetByTokenHash(ctx context.Context, tokenHash strin
 	err := st.db.GetContext(ctx, &token, query, tokenHash)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, err
 		}
 		return nil, err
 	}
 	return &token, nil
 }
 
-// ハッシュでリフレッシュトークンを失効
+// RevokeByTokenHash revokes a refresh token by its hash.
 func (st *RefreshTokenStore) RevokeByTokenHash(ctx context.Context, tokenHash string) error {
 	query := `
 		UPDATE refresh_tokens
@@ -135,7 +136,7 @@ func (st *RefreshTokenStore) RevokeByTokenHash(ctx context.Context, tokenHash st
 	return err
 }
 
-// ユーザーIDの全リフレッシュトークンを失効
+// RevokeByUserID revokes all refresh tokens for a user.
 func (st *RefreshTokenStore) RevokeByUserID(ctx context.Context, userID uuid.UUID) error {
 	query := `
 		UPDATE refresh_tokens
@@ -153,7 +154,7 @@ type AuthBundle struct {
 	refreshTokenStore *RefreshTokenStore
 }
 
-// AuthBundle のコンストラクタ
+// NewAuthBundle returns a new instance of AuthBundle.
 func NewAuthBundle(cfg *AuthConfig, refreshTokenStore *RefreshTokenStore) *AuthBundle {
 	return &AuthBundle{
 		cfg:               cfg,
@@ -161,13 +162,13 @@ func NewAuthBundle(cfg *AuthConfig, refreshTokenStore *RefreshTokenStore) *AuthB
 	}
 }
 
-// JWTクレーム
+// A AuthClaims represents the JWT claims for authentication.
 type AuthClaims struct {
 	UserID uuid.UUID `json:"sub"`
 	jwt.RegisteredClaims
 }
 
-// アクセストークン生成
+// GenerateAccessToken generates a new access token for the given user ID.
 func (a *AuthBundle) GenerateAccessToken(userID uuid.UUID) (string, error) {
 	now := time.Now()
 	claims := AuthClaims{
@@ -190,9 +191,9 @@ func (a *AuthBundle) GenerateAccessToken(userID uuid.UUID) (string, error) {
 	return tokenString, nil
 }
 
-// アクセストークン検証
+// ValidateAccessToken validates the access token and returns the claims if valid.
 func (a *AuthBundle) ValidateAccessToken(tokenString string) (*AuthClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &AuthClaims{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &AuthClaims{}, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("%w: unexpected signing method: %v", apperror.ErrUnauthorized, token.Header["alg"])
 		}
@@ -232,7 +233,7 @@ func (a *AuthBundle) ValidateAccessToken(tokenString string) (*AuthClaims, error
 	return claims, nil
 }
 
-// リフレッシュトークン生成
+// GenerateRefreshToken generates a new refresh token for the given user ID.
 func (a *AuthBundle) GenerateRefreshToken(ctx context.Context, userID uuid.UUID) (string, error) {
 	// ランダムトークン生成
 	tokenBytes := make([]byte, 32)
@@ -262,7 +263,7 @@ func (a *AuthBundle) GenerateRefreshToken(ctx context.Context, userID uuid.UUID)
 	return tokenString, nil
 }
 
-// リフレッシュトークン検証
+// ValidateRefreshToken validates the refresh token and returns the corresponding RefreshToken if valid.
 func (a *AuthBundle) ValidateRefreshToken(ctx context.Context, tokenString string) (*RefreshToken, error) {
 	// ハッシュ化
 	hash := sha256.Sum256([]byte(tokenString))
@@ -288,7 +289,7 @@ func (a *AuthBundle) ValidateRefreshToken(ctx context.Context, tokenString strin
 	return token, nil
 }
 
-// リフレッシュトークンローテーション
+// RotateRefreshToken rotates the refresh token: it validates the old token, revokes it, and generates a new one.
 func (a *AuthBundle) RotateRefreshToken(ctx context.Context, oldTokenString string) (string, error) {
 	// 旧トークン検証
 	oldToken, err := a.ValidateRefreshToken(ctx, oldTokenString)
@@ -299,7 +300,7 @@ func (a *AuthBundle) RotateRefreshToken(ctx context.Context, oldTokenString stri
 	// 旧トークン失効
 	hash := sha256.Sum256([]byte(oldTokenString))
 	tokenHash := hex.EncodeToString(hash[:])
-	if err := a.refreshTokenStore.RevokeByTokenHash(ctx, tokenHash); err != nil {
+	if err = a.refreshTokenStore.RevokeByTokenHash(ctx, tokenHash); err != nil {
 		return "", fmt.Errorf("%w: failed to revoke old token: %v", apperror.ErrInternal, err)
 	}
 
@@ -312,7 +313,7 @@ func (a *AuthBundle) RotateRefreshToken(ctx context.Context, oldTokenString stri
 	return newToken, nil
 }
 
-// パスワードハッシュ生成
+// HashPassword hashes the given password using bcrypt.
 func HashPassword(password string) (string, error) {
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -321,9 +322,7 @@ func HashPassword(password string) (string, error) {
 	return string(hashedBytes), nil
 }
 
-
-
-// Cookie設定
+// SetAuthCookies sets the access and refresh tokens as HTTP cookies.
 func SetAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, cfg *AuthConfig) {
 	// アクセストークンCookie
 	http.SetCookie(w, &http.Cookie{
@@ -337,7 +336,6 @@ func SetAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, cfg
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	// リフレッシュトークンCookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken,
@@ -350,7 +348,7 @@ func SetAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, cfg
 	})
 }
 
-func ReadAuthCookies(w http.ResponseWriter, r *http.Request) (string, string) {
+func ReadAuthCookies(_ http.ResponseWriter, r *http.Request) (string, string) {
 	accessToken, err := r.Cookie("access_token")
 	if err != nil {
 		accessToken = &http.Cookie{}
@@ -362,24 +360,24 @@ func ReadAuthCookies(w http.ResponseWriter, r *http.Request) (string, string) {
 	return accessToken.Value, refreshToken.Value
 }
 
-// コンテキストからユーザーIDを取得
+// GetUserIDFromContext retrieves the user ID from the context.
 func GetUserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	userID, ok := ctx.Value(UserIDKey).(uuid.UUID)
 	return userID, ok
 }
 
-// コンテキストにユーザーIDを設定
+// SetUserIDInContext sets the user ID in the context.
 func SetUserIDInContext(ctx context.Context, userID uuid.UUID) context.Context {
 	return context.WithValue(ctx, UserIDKey, userID)
 }
 
-// ドキュメント（Swagger/OpenAPI）向けのヘルパー
+// SwaggerDir はSwagger UIのディレクトリパスです
 const (
 	SwaggerDir  = "./docs/swagger"
 	OpenAPIPath = "./docs/openapi.yaml"
 )
 
-// Swagger UI と OpenAPI YAML を提供するハンドラを mux に登録する
+// RegisterDocsRoutes registers the routes for serving Swagger UI and OpenAPI YAML.
 func RegisterDocsRoutes(mux *http.ServeMux) {
 	mux.Handle("GET /swagger/", http.StripPrefix("/swagger/", http.FileServer(http.Dir(SwaggerDir))))
 	mux.HandleFunc("GET /openapi.yaml", func(w http.ResponseWriter, r *http.Request) {

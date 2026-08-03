@@ -1,12 +1,14 @@
 package main
 
 import (
-	"database/sql"
-	"42tokyo-road-to-dena-server/config"
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"strconv"
+
+	"42tokyo-road-to-dena-server/config"
+
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
@@ -19,13 +21,13 @@ var teamNames = []string{
 }
 
 func _seedTeams(ctx context.Context, db *sql.DB) error {
-	query := "INSERT INTO Teams (id, name) VALUES ($1, $2)"	
+	query := "INSERT INTO Teams (id, name) VALUES ($1, $2)"
 	for _, name := range teamNames {
 		uuid, err := uuid.NewUUID()
 		if err != nil {
 			return err
 		}
-		_, err = db.ExecContext(ctx, query, uuid.String(),name)
+		_, err = db.ExecContext(ctx, query, uuid.String(), name)
 		if err != nil {
 			return err
 		}
@@ -34,16 +36,16 @@ func _seedTeams(ctx context.Context, db *sql.DB) error {
 }
 
 var games = []struct {
-    home      string
-    away      string
-    gameDate  string
-    startTime string
-    venue     string
+	home      string
+	away      string
+	gameDate  string
+	startTime string
+	venue     string
 }{
-    {"Team A", "Team B", "2024-04-01", "2024-04-01 13:00:00", "Stadium A"},
-    {"Team C", "Team D", "2024-04-01", "2024-04-01 16:00:00", "Stadium C"},
-    {"Team A", "Team C", "2024-04-08", "2024-04-08 13:00:00", "Stadium A"},
-    {"Team B", "Team D", "2024-04-08", "2024-04-08 16:00:00", "Stadium B"},
+	{"Team A", "Team B", "2024-04-01", "2024-04-01 13:00:00", "Stadium A"},
+	{"Team C", "Team D", "2024-04-01", "2024-04-01 16:00:00", "Stadium C"},
+	{"Team A", "Team C", "2024-04-08", "2024-04-08 13:00:00", "Stadium A"},
+	{"Team B", "Team D", "2024-04-08", "2024-04-08 16:00:00", "Stadium B"},
 	{"Team D", "Team A", "2024-04-15", "2024-04-15 13:00:00", "Stadium D"},
 	{"Team B", "Team C", "2024-04-15", "2024-04-15 16:00:00", "Stadium B"},
 }
@@ -80,7 +82,6 @@ func _seedGames(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-
 var seatGrade = [][2]string{
 	{"SS", "10000"},
 	{"S", "8000"},
@@ -102,7 +103,7 @@ func _seedSeats(ctx context.Context, db *sql.DB) error {
 			if err != nil {
 				return err
 			}
-			_ , err = db.ExecContext(ctx, query, uuid.String(), grade[0], price)
+			_, err = db.ExecContext(ctx, query, uuid.String(), grade[0], price)
 			if err != nil {
 				return err
 			}
@@ -127,10 +128,13 @@ func getSeatInfo(ctx context.Context, db *sql.DB) (map[string]int, error) {
 	for rows.Next() {
 		var id string
 		var price int
-		if err := rows.Scan(&id, &price); err != nil {
+		if err = rows.Scan(&id, &price); err != nil {
 			return nil, err
 		}
 		seatInfo[id] = price
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 	return seatInfo, nil
 }
@@ -148,10 +152,13 @@ func getGameIDs(ctx context.Context, db *sql.DB) ([]string, error) {
 	var gameIDs []string
 	for rows.Next() {
 		var id string
-		if err := rows.Scan(&id); err != nil {
+		if err = rows.Scan(&id); err != nil {
 			return nil, err
 		}
 		gameIDs = append(gameIDs, id)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 	return gameIDs, nil
 }
@@ -189,18 +196,15 @@ func _clearTables(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-
-
-
 func main() {
 	dbDriver := "postgres"
 	cfg, err := config.Load()
-	if err != nil {	
+	if err != nil {
 		panic(err)
 	}
 	DBcfg := cfg.Database
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",DBcfg.Host, DBcfg.Port, DBcfg.User, DBcfg.Password, DBcfg.Name)
-	
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", DBcfg.Host, DBcfg.Port, DBcfg.User, DBcfg.Password, DBcfg.Name)
+
 	db, err := sql.Open(dbDriver, dsn)
 	fmt.Printf("Connecting to database with DSN: %s\n", dsn)
 	if err != nil {
@@ -208,7 +212,7 @@ func main() {
 	}
 
 	defer func() {
-		if err := db.Close(); err != nil {
+		if err = db.Close(); err != nil {
 			log.Printf("Failed to close db connection: %v", err)
 		}
 	}()
@@ -219,17 +223,17 @@ func main() {
 	}
 
 	ctx := context.Background()
-	if err := _seedTeams(ctx, db); err != nil {
+	if err = _seedTeams(ctx, db); err != nil {
 		log.Fatal(err)
 	}
-	if err := _seedGames(ctx, db); err != nil {
+	if err = _seedGames(ctx, db); err != nil {
 		log.Fatal(err)
 	}
-	if err := _seedSeats(ctx, db); err != nil {
+	if err = _seedSeats(ctx, db); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := _seedTickets(ctx, db); err != nil {
+	if err = _seedTickets(ctx, db); err != nil {
 		log.Fatal(err)
 	}
 	log.Println("Seeding completed successfully.")

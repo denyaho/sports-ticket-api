@@ -1,9 +1,8 @@
 package main
 
 import (
-	"42tokyo-road-to-dena-server/config"
-	"42tokyo-road-to-dena-server/internal/handler"
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"log/slog"
@@ -12,31 +11,42 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"database/sql"
-	"github.com/jmoiron/sqlx"
+
+	"42tokyo-road-to-dena-server/authbundle"
+	"42tokyo-road-to-dena-server/config"
+	"42tokyo-road-to-dena-server/internal/handler"
 	"42tokyo-road-to-dena-server/internal/repository"
 	"42tokyo-road-to-dena-server/internal/service"
+
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"42tokyo-road-to-dena-server/authbundle"
 )
 
 func main() {
+	if err := run(); err != nil {
+		slog.Error("Server failed", "error", err)
+		os.Exit(1)
+	}
+}
+
+
+func run() error {
 	// 設定の読み込み
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 	//DB接続の初期化
 	dbDriver := "postgres"
 	DBcfg := cfg.Database
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",DBcfg.Host, DBcfg.Port, DBcfg.User, DBcfg.Password, DBcfg.Name)
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", DBcfg.Host, DBcfg.Port, DBcfg.User, DBcfg.Password, DBcfg.Name)
 
 	authConfig := &authbundle.AuthConfig{
-		JWTSecret:  cfg.Auth.JWTSecret,
-		JWTIssuer:   cfg.Auth.JWTIssuer,
-		JWTAudience: cfg.Auth.JWTAudience,
-		AccessTTL: cfg.Auth.AccessTokenTTL,
-		RefreshTTL: cfg.Auth.RefreshTokenTTL,
+		JWTSecret:    cfg.Auth.JWTSecret,
+		JWTIssuer:    cfg.Auth.JWTIssuer,
+		JWTAudience:  cfg.Auth.JWTAudience,
+		AccessTTL:    cfg.Auth.AccessTokenTTL,
+		RefreshTTL:   cfg.Auth.RefreshTokenTTL,
 		CookieDomain: cfg.Auth.CookieDomain,
 		CookieSecure: cfg.Auth.CookieSecure,
 	}
@@ -44,23 +54,17 @@ func main() {
 	db, err := sql.Open(dbDriver, dsn)
 
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		return fmt.Errorf("failed to open database: %w", err)
 	}
 	defer func() {
-		if err := db.Close(); err != nil {
+		if err = db.Close(); err != nil {
 			log.Printf("Failed to close db connection: %v", err)
 		}
 	}()
-	
-	if err := db.Ping(); err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+
+	if err = db.Ping(); err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-	
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Printf("Failed to close db connection: %v", err)
-		}
-	}()
 	// ハンドラーの初期化
 	userrepo := repository.NewUserRepository(db)
 	userservice := service.NewUserService(userrepo)
@@ -73,7 +77,6 @@ func main() {
 
 	reservationRepo := repository.NewReservationRepository(db)
 	reservationService := service.NewReservationService(reservationRepo)
-
 
 	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, dbDriver))
 	authbundle := authbundle.NewAuthBundle(authConfig, store)
@@ -98,50 +101,47 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-
 	// サーバーの起動（非同期）
+	errCh := make(chan error, 1)
 	go func() {
 		log.Printf("Starting server on %s", srv.Addr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Failed to start server: %v", err)
+		if errServ := srv.ListenAndServe(); errServ != nil && errServ != http.ErrServerClosed {
+			errCh <- fmt.Errorf("failed to start server: %w", errServ)
 		}
 	}()
 
 	// シグナルハンドリング
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)//監視すべきシグナルを列挙する
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) //監視すべきシグナルを列挙する
 
+	defer stop()
 	go func() {
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
 		for {
 			select {
-				case <-ticker.C:
-					if err := reservationRepo.CheckExpiredReservations(ctx); err != nil {
-						log.Printf("Error checking expired reservations: %v", err)
-					}
-				case <-ctx.Done():
-					return
-				case <-quit:
-					return
+			case <-ticker.C:
+				if errRes := reservationService.ExpiredReservations(ctx); errRes != nil {
+					log.Printf("Error checking expired reservations: %v", errRes)
+				}
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
 
-
-	<-quit
-
-	log.Println("Shutting down server...")
-
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		logger.Info("Shutting down server...")
+	}
 	// グレースフルシャットダウン
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	if err = srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Server forced to shutdown: %v", err)
 	}
-
 	log.Println("Server exited")
+	return nil	
 }

@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+
 	"42tokyo-road-to-dena-server/internal/domain"
 	"42tokyo-road-to-dena-server/internal/repository"
+
 	"github.com/google/uuid"
 )
 
@@ -27,4 +29,3 @@ func (s *gameService) GetAllGames(ctx context.Context) ([]domain.Game, error) {
 func (s *gameService) GetGameByID(ctx context.Context, id uuid.UUID) (*domain.Game, error) {
 	return s.repo.GetGameByID(ctx, id)
 }
-

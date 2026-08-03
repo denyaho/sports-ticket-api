@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) error {
-	response := map[string]interface{}{
+func (h *Handler) HealthCheck(w http.ResponseWriter, _ *http.Request) error {
+	response := map[string]any{
 		"status":    "healthy",
 		"timestamp": time.Now().Unix(),
 	}

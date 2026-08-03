@@ -2,11 +2,12 @@ package service
 
 import (
 	"context"
+
 	"42tokyo-road-to-dena-server/internal/domain"
 	"42tokyo-road-to-dena-server/internal/repository"
+
 	"github.com/google/uuid"
 )
-
 
 type SeatsService interface {
 	GetSeatsByGameID(ctx context.Context, gameID uuid.UUID) ([]domain.Seat, error)

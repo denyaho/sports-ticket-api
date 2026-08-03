@@ -1,15 +1,16 @@
 package handler
 
 import (
+	"context"
+	"net"
 	"net/http"
 	"strings"
-	"net"
-	"context"
+
 	"github.com/google/uuid"
 )
 
 type RequestState struct {
-	Err error
+	Err    error
 	UserID uuid.UUID
 }
 
@@ -18,13 +19,13 @@ type contextKey string
 const requestStateKey contextKey = "requestState"
 
 type rwWrapper struct {
-	rw http.ResponseWriter
+	rw         http.ResponseWriter
 	statusCode int
 }
 
-func NewRwWrapper(rw http.ResponseWriter) *rwWrapper {
+func newRwWrapper(rw http.ResponseWriter) *rwWrapper {
 	return &rwWrapper{
-		rw: rw,
+		rw:         rw,
 		statusCode: http.StatusOK,
 	}
 }
@@ -52,8 +53,7 @@ func (h *Handler) Logging(next http.Handler) http.Handler {
 
 		r.Body = http.MaxBytesReader(w, r.Body, maxBytesSize)
 
-
-		rww := NewRwWrapper(w)
+		rww := newRwWrapper(w)
 		holder := &RequestState{}
 		ctx := context.WithValue(r.Context(), requestStateKey, holder)
 
@@ -67,13 +67,11 @@ func (h *Handler) Logging(next http.Handler) http.Handler {
 			h.warnLog(r, reqURL, statusCode, userID, hostIP, err)
 		} else if statusCode >= 500 {
 			h.errorLog(r, reqURL, statusCode, userID, hostIP, err)
-		}else {
+		} else {
 			h.accessLog(r, reqURL, statusCode, userID, hostIP)
 		}
 	})
 }
-
-
 
 func (h *Handler) getClientIP(r *http.Request) string {
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
@@ -89,7 +87,7 @@ func (h *Handler) getClientIP(r *http.Request) string {
 
 func (h *Handler) accessLog(r *http.Request, reqURL string, statusCode int, userID string, hostIP string) {
 	accessLogger := h.logger.With("type", "access")
-	accessLogger.Info("Access log",
+	accessLogger.InfoContext(r.Context(), "Access log",
 		"method", r.Method,
 		"url", reqURL,
 		"status", statusCode,
@@ -100,7 +98,7 @@ func (h *Handler) accessLog(r *http.Request, reqURL string, statusCode int, user
 
 func (h *Handler) warnLog(r *http.Request, reqURL string, statusCode int, userID string, hostIP string, warn error) {
 	warnLogger := h.logger.With("type", "warn")
-	warnLogger.Warn("Warn log",
+	warnLogger.WarnContext(r.Context(), "Warn log",
 		"method", r.Method,
 		"url", reqURL,
 		"status", statusCode,
@@ -111,7 +109,7 @@ func (h *Handler) warnLog(r *http.Request, reqURL string, statusCode int, userID
 }
 func (h *Handler) errorLog(r *http.Request, reqURL string, statusCode int, userID string, hostIP string, err error) {
 	errorLogger := h.logger.With("type", "error")
-	errorLogger.Error("Error log",
+	errorLogger.ErrorContext(r.Context(), "Error log",
 		"method", r.Method,
 		"url", reqURL,
 		"status", statusCode,

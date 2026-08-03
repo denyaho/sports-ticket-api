@@ -1,22 +1,22 @@
 package repository
 
 import (
-	"database/sql"
-	"github.com/google/uuid"
 	"context"
-	"42tokyo-road-to-dena-server/internal/domain"
-	"github.com/lib/pq"
+	"database/sql"
 	"errors"
-	"42tokyo-road-to-dena-server/internal/apperror"
-)
 
+	"42tokyo-road-to-dena-server/internal/apperror"
+	"42tokyo-road-to-dena-server/internal/domain"
+
+	"github.com/google/uuid"
+	"github.com/lib/pq"
+)
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error)
 	FindUserByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 }
-
 
 type postgreUserRepository struct {
 	DB *sql.DB
@@ -27,7 +27,6 @@ func NewUserRepository(db *sql.DB) UserRepository {
 }
 
 func (r *postgreUserRepository) CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error) {
-
 	query := "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id"
 
 	var id uuid.UUID
@@ -35,10 +34,10 @@ func (r *postgreUserRepository) CreateUser(ctx context.Context, user *domain.Use
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			switch pqErr.Code {
-				case "23505":
-					return uuid.Nil, apperror.ErrDuplicateEmail
-				default:
-					return uuid.Nil, apperror.ErrDatabase
+			case "23505":
+				return uuid.Nil, apperror.ErrDuplicateEmail
+			default:
+				return uuid.Nil, apperror.ErrDatabase
 			}
 		}
 		return uuid.Nil, apperror.ErrUserNotCreated

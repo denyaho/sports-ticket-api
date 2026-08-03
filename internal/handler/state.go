@@ -2,9 +2,9 @@ package handler
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 )
-
 
 func SetUserIDInRequestState(ctx context.Context, userID uuid.UUID) {
 	if state, ok := ctx.Value(requestStateKey).(*RequestState); ok {

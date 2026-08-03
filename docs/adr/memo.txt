@@ -1,0 +1,16 @@
+sql.Rows は for rows.Next()ループがfalseを返した場合に、それが全行読み終わったのか、途中でエラーが発生したのかの区別ができない。
+
+rows.Err()を呼ばないとネットワーク断や型変換エラーを見逃す
+ https://go.dev/doc/database/querying
+
+ logging.Infocontextについて
+
+ コメント文について
+ https://go.dev/doc/comment
+
+
+
+ t.Parallelについて
+ testingパッケージを使ったテストコードの実行はデフォルトでは逐次的。
+http://engineering.mercari.com/blog/entry/how_to_use_t_parallel/
+
