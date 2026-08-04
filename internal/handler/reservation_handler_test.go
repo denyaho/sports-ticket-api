@@ -92,9 +92,7 @@ func TestHandleCancelReservation(t *testing.T) {
 		},
 		{
 			name: "unauthorized",
-			setupContext: func() context.Context {
-				return context.Background()
-			},
+			setupContext: context.Background,
 			reservationID:  reservationID,
 			fakeErr:        nil,
 			expectedStatus: http.StatusUnauthorized,
@@ -190,9 +188,7 @@ func TestHandleCreateReservation(t *testing.T) {
 		},
 		{
 			name: "unauthorized",
-			setupContext: func() context.Context {
-				return context.Background()
-			},
+			setupContext: context.Background,
 			reqBody:        successReqBody,
 			fakeErr:        nil,
 			expectedStatus: http.StatusUnauthorized,
@@ -288,9 +284,7 @@ func TestHandleGetUserReservations(t *testing.T) {
 		},
 		{
 			name: "unauthorized",
-			setupContext: func() context.Context {
-				return context.Background()
-			},
+			setupContext: context.Background,
 			fakeErr:        nil,
 			expectedStatus: http.StatusUnauthorized,
 		},
@@ -346,9 +340,7 @@ func TestHandleGetReservationByID(t *testing.T) {
 		},
 		{
 			name: "unauthorized",
-			setupContext: func() context.Context {
-				return context.Background()
-			},
+			setupContext: context.Background,
 			reservationID:  reservationID,
 			fakeErr:        nil,
 			expectedStatus: http.StatusUnauthorized,
@@ -420,9 +412,7 @@ func TestHandlePurchaseReservation(t *testing.T) {
 		},
 		{
 			name: "unauthorized",
-			setupContext: func() context.Context {
-				return context.Background()
-			},
+			setupContext: context.Background,
 			reservationID:  reservationID,
 			fakeErr:        nil,
 			expectedStatus: http.StatusUnauthorized,

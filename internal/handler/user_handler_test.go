@@ -114,7 +114,7 @@ func TestHandleGetUser(t *testing.T) {
 		Email:    "testuser@example.com",
 	}
 
-	FindUserTests := []struct {
+	findUserTests := []struct {
 		name         string
 		setupContext func() context.Context
 		userInfo     *domain.User
@@ -130,9 +130,7 @@ func TestHandleGetUser(t *testing.T) {
 		},
 		{
 			name: "Not authorized",
-			setupContext: func() context.Context {
-				return context.Background()
-			},
+			setupContext: context.Background,
 			userInfo:    nil,
 			fakeErr:     nil,
 			expectedErr: http.StatusUnauthorized,
@@ -153,7 +151,7 @@ func TestHandleGetUser(t *testing.T) {
 		},
 	}
 	t.Parallel()
-	for _, tt := range FindUserTests {
+	for _, tt := range findUserTests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			h := &Handler{

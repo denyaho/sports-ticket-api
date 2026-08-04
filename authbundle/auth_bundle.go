@@ -319,6 +319,8 @@ func HashPassword(password string) (string, error) {
 }
 
 // SetAuthCookies sets the access and refresh tokens as HTTP cookies.
+//
+//nolint:gosec // G124: Secure は環境設定で制御（本番=true、ローカルHTTP開発=false）。HttpOnly/SameSite は静的に設定済み
 func SetAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, cfg *AuthConfig) {
 	// アクセストークンCookie
 	http.SetCookie(w, &http.Cookie{

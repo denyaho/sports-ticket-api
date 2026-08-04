@@ -358,7 +358,7 @@ func (r *reservationRepository) selectAvailableTickets(
 func (r *reservationRepository) CreateReservation(
 	ctx context.Context,
 	reqBody *domain.ReservationRequest,
-	user_ID uuid.UUID,
+	userID uuid.UUID,
 	expiresAt time.Time,
 ) (*domain.Reservation, error) {
 	if err := r.ExpiredReservations(ctx); err != nil {
@@ -405,7 +405,7 @@ func (r *reservationRepository) CreateReservation(
 	insertQuery := `INSERT INTO reservations
 	(id, user_id, game_id, status, expires_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, game_id, status, expires_at, created_at, updated_at`
 
-	if err = tx.QueryRowContext(ctx, insertQuery, uuid.New(), user_ID, gameID, "pending", expiresAt).Scan(
+	if err = tx.QueryRowContext(ctx, insertQuery, uuid.New(), userID, gameID, "pending", expiresAt).Scan(
 		&reservationResponse.ID,
 		&reservationResponse.GameID,
 		&reservationResponse.Status,

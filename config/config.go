@@ -96,6 +96,8 @@ func Load(logger *slog.Logger) (*Config, error) {
 		return nil, fmt.Errorf("DB_NAME is required")
 	} else if cfg.Database.Host == "" {
 		return nil, fmt.Errorf("DB_HOST is required")
+	} else if !cfg.Auth.CookieSecure {
+		return nil, fmt.Errorf("COOKIE_SECURE is false")
 	}
 
 	return cfg, nil

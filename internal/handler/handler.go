@@ -100,10 +100,7 @@ func (h *Handler) respondJSON(w http.ResponseWriter, data any, status int) {
 }
 
 func (h *Handler) respondError(w http.ResponseWriter, err error, status int) {
-	message := "internal server error"
-	if status < 500 {
-		message = http.StatusText(status)
-	}
+	message := http.StatusText(status)
 	response := map[string]string{
 		"error": message,
 	}

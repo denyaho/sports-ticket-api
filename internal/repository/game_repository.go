@@ -42,8 +42,8 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 	}
 
 	defer func() {
-		if err := rows.Close(); err != nil {
-			fmt.Printf("error closing rows: %v", err.Error())
+		if closeErr := rows.Close(); closeErr != nil {
+			fmt.Printf("error closing rows: %v", closeErr.Error())
 		}
 	}()
 

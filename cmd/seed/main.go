@@ -35,21 +35,6 @@ func _seedTeams(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-var games = []struct {
-	home      string
-	away      string
-	gameDate  string
-	startTime string
-	venue     string
-}{
-	{"Team A", "Team B", "2024-04-01", "2024-04-01 13:00:00", "Stadium A"},
-	{"Team C", "Team D", "2024-04-01", "2024-04-01 16:00:00", "Stadium C"},
-	{"Team A", "Team C", "2024-04-08", "2024-04-08 13:00:00", "Stadium A"},
-	{"Team B", "Team D", "2024-04-08", "2024-04-08 16:00:00", "Stadium B"},
-	{"Team D", "Team A", "2024-04-15", "2024-04-15 13:00:00", "Stadium D"},
-	{"Team B", "Team C", "2024-04-15", "2024-04-15 16:00:00", "Stadium B"},
-}
-
 func getTeamIDByName(ctx context.Context, db *sql.DB, name string) (string, error) {
 	query := "SELECT id FROM Teams WHERE name = $1"
 	var id string
@@ -60,6 +45,20 @@ func getTeamIDByName(ctx context.Context, db *sql.DB, name string) (string, erro
 }
 
 func _seedGames(ctx context.Context, db *sql.DB) error {
+	var games = []struct {
+		home      string
+		away      string
+		gameDate  string
+		startTime string
+		venue     string
+	}{
+		{"Team A", "Team B", "2024-04-01", "2024-04-01 13:00:00", "Stadium A"},
+		{"Team C", "Team D", "2024-04-01", "2024-04-01 16:00:00", "Stadium C"},
+		{"Team A", "Team C", "2024-04-08", "2024-04-08 13:00:00", "Stadium A"},
+		{"Team B", "Team D", "2024-04-08", "2024-04-08 16:00:00", "Stadium B"},
+		{"Team D", "Team A", "2024-04-15", "2024-04-15 13:00:00", "Stadium D"},
+		{"Team B", "Team C", "2024-04-15", "2024-04-15 16:00:00", "Stadium B"},
+	}
 	query := "INSERT INTO Games (id, home_team_id, away_team_id, game_date, start_time, venue) VALUES ($1, $2, $3, $4, $5, $6)"
 	for _, game := range games {
 		homeTeamID, err := getTeamIDByName(ctx, db, game.home)
@@ -91,15 +90,14 @@ func _seedGames(ctx context.Context, db *sql.DB) error {
 	return nil
 }
 
-var seatGrade = [][2]string{
-	{"SS", "10000"},
-	{"S", "8000"},
-	{"A", "5000"},
-	{"B", "3000"},
-	{"C", "1000"},
-}
-
 func _seedSeats(ctx context.Context, db *sql.DB) error {
+	var seatGrade = [][2]string{
+		{"SS", "10000"},
+		{"S", "8000"},
+		{"A", "5000"},
+		{"B", "3000"},
+		{"C", "1000"},
+	}
 	query := "INSERT INTO Seats (id, grade, price) VALUES ($1, $2, $3)"
 	seatsPerGrade := 3
 	for _, grade := range seatGrade {
@@ -222,14 +220,14 @@ func run(logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	DBcfg := cfg.Database
+	dBcfg := cfg.Database
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		DBcfg.Host,
-		DBcfg.Port,
-		DBcfg.User,
-		DBcfg.Password,
-		DBcfg.Name,
+		dBcfg.Host,
+		dBcfg.Port,
+		dBcfg.User,
+		dBcfg.Password,
+		dBcfg.Name,
 	)
 
 	db, err := sql.Open(dbDriver, dsn)

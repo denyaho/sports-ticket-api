@@ -154,8 +154,8 @@ func run(logger *slog.Logger) error {
 		return fmt.Errorf("server shutdown failed: %w", err)
 	}
 	select {
-	case err := <-errCh:
-		return err
+	case serveErr := <-errCh:
+		return serveErr
 	default:
 	}
 	log.Println("Server exited")
