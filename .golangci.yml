@@ -323,7 +323,6 @@ linters:
       # Run `GL_DEBUG=govet golangci-lint run --enable=govet` to see default, all available analyzers, and enabled analyzers.
       # Default: []
       disable:
-        - godot
         - fieldalignment # too strict
       # Settings per analyzer.
       settings:
