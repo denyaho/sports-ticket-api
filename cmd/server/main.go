@@ -32,23 +32,8 @@ func main() {
 	logger.Info("Server exited gracefully")
 }
 
-func setupDatabase(logger *slog.Logger) () {
-	cfg, err := config.Load(logger)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-	dbDriver := ""
-	
-}
-
-func run(logger *slog.Logger) error {
-	// 設定の読み込み
-	cfg, err := config.Load(logger)
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-	// DB接続の初期化
-	dbDriver := "postgres"
+func setupDatabase(cfg *config.Config) (*sql.DB, error) {
+	dbDriver := cfg.Database.Driver
 	dBcfg := cfg.Database
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -59,6 +44,31 @@ func run(logger *slog.Logger) error {
 		dBcfg.Name,
 	)
 
+	db, err := sql.Open(dbDriver, dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err = db.PingContext(pingCtx); err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+	return db, nil
+}
+
+func run(logger *slog.Logger) error {
+	// 設定の読み込み
+	cfg, err := config.Load(logger)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+	// DB接続の初期化
+	db, err := setupDatabase(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to setup database: %w", err)
+	}
 	authConfig := &authbundle.AuthConfig{
 		JWTSecret:    cfg.Auth.JWTSecret,
 		JWTIssuer:    cfg.Auth.JWTIssuer,
@@ -67,23 +77,6 @@ func run(logger *slog.Logger) error {
 		RefreshTTL:   cfg.Auth.RefreshTokenTTL,
 		CookieDomain: cfg.Auth.CookieDomain,
 		CookieSecure: cfg.Auth.CookieSecure,
-	}
-
-	db, err := sql.Open(dbDriver, dsn)
-	if err != nil {
-		return fmt.Errorf("failed to open database: %w", err)
-	}
-
-	defer func() {
-		if err = db.Close(); err != nil {
-			log.Printf("Failed to close db connection: %v", err)
-		}
-	}()
-	pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err = db.PingContext(pingCtx); err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 	// ハンドラーの初期化
 	userrepo := repository.NewUserRepository(db)
@@ -98,7 +91,7 @@ func run(logger *slog.Logger) error {
 	reservationRepo := repository.NewReservationRepository(db)
 	reservationService := service.NewReservationService(reservationRepo)
 
-	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, dbDriver))
+	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, cfg.Database.Driver))
 	authbundle := authbundle.NewAuthBundle(authConfig, store)
 
 	h := handler.New(

@@ -27,6 +27,7 @@ type DatabaseConfig struct {
 	Name     string
 	Host     string
 	Port     string
+	Driver   string
 }
 
 type AuthConfigTmp struct {
@@ -75,6 +76,7 @@ func Load(logger *slog.Logger) (*Config, error) {
 			Name:     getEnv("DB_NAME", ""),
 			Host:     getEnv("DB_HOST", ""),
 			Port:     getEnv("DB_PORT", "5432"),
+			Driver:   getEnv("DB_DRIVER", "postgres"),
 		},
 		Auth: AuthConfigTmp{
 			JWTSecret:       getEnv("JWTSECRET", ""),
