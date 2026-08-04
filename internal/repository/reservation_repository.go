@@ -355,6 +355,30 @@ func (r *reservationRepository) selectAvailableTickets(
 	return ticketIDs, nil
 }
 
+const selectAvailableTicketsQuery = `
+SELECT tickets.id FROM tickets JOIN seats ON tickets.seat_id = seats.id 
+		WHERE (tickets.game_id = $1 AND seats.grade = $2 
+		AND (
+			tickets.status = 'available'
+			OR (
+				tickets.status = 'reserved'
+				AND EXISTS (
+					SELECT 1 FROM reservations
+					WHERE reservations.id = tickets.reservation_id
+					AND reservations.status = 'pending'
+					AND reservations.expires_at < NOW()
+				)
+			)
+		)
+	)
+LIMIT $3 FOR UPDATE OF tickets
+`
+
+const insertReservationQuery = `
+INSERT INTO reservations
+	(id, user_id, game_id, status, expires_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, game_id, status, expires_at, created_at, updated_at
+`
+
 func (r *reservationRepository) CreateReservation(
 	ctx context.Context,
 	reqBody *domain.ReservationRequest,
@@ -379,22 +403,9 @@ func (r *reservationRepository) CreateReservation(
 	for _, seat := range reqBody.Seats {
 		seatGrade := seat.Grade
 		seatQuantity := seat.Quantity
-
-		query := `SELECT tickets.id FROM tickets JOIN seats ON tickets.seat_id = seats.id 
-		WHERE (tickets.game_id = $1 AND seats.grade = $2 
-		AND (
-			tickets.status = 'available'
-			OR (
-				tickets.status = 'reserved'
-				AND EXISTS (
-					SELECT 1 FROM reservations
-					WHERE reservations.id = tickets.reservation_id
-					AND reservations.status = 'pending'
-					AND reservations.expires_at < NOW()
-				))))LIMIT $3 FOR UPDATE OF tickets`
 		// skip locked でテストしてみる
 		var ids []uuid.UUID
-		ids, err = r.selectAvailableTickets(ctx, query, tx, gameID, seatGrade, seatQuantity)
+		ids, err = r.selectAvailableTickets(ctx, selectAvailableTicketsQuery, tx, gameID, seatGrade, seatQuantity)
 		if err != nil {
 			return nil, err
 		}
@@ -402,11 +413,7 @@ func (r *reservationRepository) CreateReservation(
 	}
 
 	var reservationResponse domain.Reservation
-
-	insertQuery := `INSERT INTO reservations
-	(id, user_id, game_id, status, expires_at) VALUES ($1, $2, $3, $4, $5) RETURNING id, game_id, status, expires_at, created_at, updated_at`
-
-	if err = tx.QueryRowContext(ctx, insertQuery, uuid.New(), userID, gameID, "pending", expiresAt).Scan(
+	if err = tx.QueryRowContext(ctx, insertReservationQuery, uuid.New(), userID, gameID, "pending", expiresAt).Scan(
 		&reservationResponse.ID,
 		&reservationResponse.GameID,
 		&reservationResponse.Status,

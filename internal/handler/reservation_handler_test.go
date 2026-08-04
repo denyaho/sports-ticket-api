@@ -60,7 +60,7 @@ func (m *StubreservationService) ExpiredReservations(ctx context.Context) error 
 	return m.FakeExpiredReservations(ctx)
 }
 
-var CreateContext = func() context.Context {
+func createContext() context.Context {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, authbundle.UserIDKey, uuid.New())
 	return ctx
@@ -78,14 +78,14 @@ func TestHandleCancelReservation(t *testing.T) {
 	}{
 		{
 			name:           "success",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        nil,
 			expectedStatus: http.StatusNoContent,
 		},
 		{
 			name:           "not found",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        apperror.ErrNotFound,
 			expectedStatus: http.StatusNotFound,
@@ -99,35 +99,35 @@ func TestHandleCancelReservation(t *testing.T) {
 		},
 		{
 			name:           "internal server error",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        apperror.ErrDatabase,
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
 			name:           "bad request",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  "invalid-uuid",
 			fakeErr:        nil,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "reservation conflict",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        apperror.ErrReservationConflict,
 			expectedStatus: http.StatusConflict,
 		},
 		{
 			name:           "reservation not pending",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        apperror.ErrReservationNotPending,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "reservation expired",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        apperror.ErrReservationExpired,
 			expectedStatus: http.StatusGone,
@@ -181,7 +181,7 @@ func TestHandleCreateReservation(t *testing.T) {
 	}{
 		{
 			name:           "success",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reqBody:        successReqBody,
 			fakeErr:        nil,
 			expectedStatus: http.StatusOK,
@@ -195,49 +195,49 @@ func TestHandleCreateReservation(t *testing.T) {
 		},
 		{
 			name:           "internal server error",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reqBody:        successReqBody,
 			fakeErr:        apperror.ErrDatabase,
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
 			name:           "bad request",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reqBody:        failReqBody,
 			fakeErr:        nil,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "Insufficient seats available",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reqBody:        successReqBody,
 			fakeErr:        apperror.ErrReservationConflict,
 			expectedStatus: http.StatusConflict,
 		},
 		{
 			name:           "not found",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reqBody:        successReqBody,
 			fakeErr:        apperror.ErrNotFound,
 			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:           "reservation expired",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reqBody:        successReqBody,
 			fakeErr:        apperror.ErrReservationExpired,
 			expectedStatus: http.StatusGone,
 		},
 		{
 			name:           "reservation not pending",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reqBody:        successReqBody,
 			fakeErr:        apperror.ErrReservationNotPending,
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "reservation conflict",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reqBody:        successReqBody,
 			fakeErr:        apperror.ErrReservationConflict,
 			expectedStatus: http.StatusConflict,
@@ -278,7 +278,7 @@ func TestHandleGetUserReservations(t *testing.T) {
 	}{
 		{
 			name:           "success",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			fakeErr:        nil,
 			expectedStatus: http.StatusOK,
 		},
@@ -290,13 +290,13 @@ func TestHandleGetUserReservations(t *testing.T) {
 		},
 		{
 			name:           "internal server error",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			fakeErr:        apperror.ErrDatabase,
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
 			name:           "not found",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			fakeErr:        apperror.ErrNotFound,
 			expectedStatus: http.StatusNotFound,
 		},
@@ -333,7 +333,7 @@ func TestHandleGetReservationByID(t *testing.T) {
 	}{
 		{
 			name:           "success",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        nil,
 			expectedStatus: http.StatusOK,
@@ -347,21 +347,21 @@ func TestHandleGetReservationByID(t *testing.T) {
 		},
 		{
 			name:           "internal server error",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        apperror.ErrDatabase,
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
 			name:           "not found",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        apperror.ErrNotFound,
 			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:           "bad request",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  "invalid-uuid",
 			fakeErr:        nil,
 			expectedStatus: http.StatusBadRequest,
@@ -405,7 +405,7 @@ func TestHandlePurchaseReservation(t *testing.T) {
 	}{
 		{
 			name:           "success",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        nil,
 			expectedStatus: http.StatusOK,
@@ -419,21 +419,21 @@ func TestHandlePurchaseReservation(t *testing.T) {
 		},
 		{
 			name:           "internal server error",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        apperror.ErrDatabase,
 			expectedStatus: http.StatusInternalServerError,
 		},
 		{
 			name:           "not found",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  reservationID,
 			fakeErr:        apperror.ErrNotFound,
 			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:           "bad request",
-			setupContext:   CreateContext,
+			setupContext:   createContext,
 			reservationID:  "invalid-uuid",
 			fakeErr:        nil,
 			expectedStatus: http.StatusBadRequest,

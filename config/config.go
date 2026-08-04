@@ -42,15 +42,15 @@ type AuthConfigTmp struct {
 }
 
 func _getEnvBool(key string, defaultVal bool) bool {
-	CookieSecurestr := getEnv(key, "")
-	if CookieSecurestr == "" {
+	cookieSecureStr := getEnv(key, "")
+	if cookieSecureStr == "" {
 		return defaultVal
 	}
-	CookieSecure, err := strconv.ParseBool(CookieSecurestr)
+	cookieSecure, err := strconv.ParseBool(cookieSecureStr)
 	if err != nil {
 		return defaultVal
 	}
-	return CookieSecure
+	return cookieSecure
 }
 
 func Load(logger *slog.Logger) (*Config, error) {

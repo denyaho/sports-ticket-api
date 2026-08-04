@@ -13,3 +13,13 @@ https://pkg.go.dev/os/signal
 
 ３、Shutdown動作について
 https://pkg.go.dev/net/http#Server.Shutdown
+
+
+
+netstat -an | grep -c TIME_WAIT
+ss -tnlp
+
+症状: ssh connect が EADDRNOTAVAIL。ping可、ARP解決済、sshd正常、認証ログも過去分は成功。
+切り分け: 宛先側レイヤ(L2/L3/L4/認証)を下から順に消去 → 送信元側に容疑を移す → bind設定なし → TIME_WAIT 25,393件でエフェメラルポート枯渇と断定。
+根因: Microsoft系サービスへのHTTPS短命接続の大量生成(プロセス特定は lsof で)。
+教訓: EADDRNOTAVAIL は文字通り「ローカルの address:port を割り当てられない」。宛先が健全なら送信元資源を疑う。

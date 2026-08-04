@@ -182,11 +182,12 @@ func _seedTickets(ctx context.Context, db *sql.DB) error {
 	}
 	for _, gameID := range gameIDs {
 		for seatID, price := range seatInfo {
-			uuid, err := uuid.NewUUID()
+			var id uuid.UUID
+			id, err = uuid.NewUUID()
 			if err != nil {
 				return err
 			}
-			_, err = db.ExecContext(ctx, query, uuid.String(), seatID, gameID, price)
+			_, err = db.ExecContext(ctx, query, id.String(), seatID, gameID, price)
 			if err != nil {
 				return err
 			}

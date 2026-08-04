@@ -10,6 +10,18 @@ import (
 	"42tokyo-road-to-dena-server/internal/domain"
 )
 
+type AuthResponse struct {
+	UserID       string `json:"user_id"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+type UserResponse struct {
+	UserID   string `json:"user_id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
 func (h *Handler) HandleRefreshToken(w http.ResponseWriter, r *http.Request) error {
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
@@ -33,12 +45,11 @@ func (h *Handler) HandleRefreshToken(w http.ResponseWriter, r *http.Request) err
 
 	authbundle.SetAuthCookies(w, newAccessToken, newRefreshToken, h.authConfig)
 
-	response := map[string]string{
-		"user_id":       userID.String(),
-		"access_token":  newAccessToken,
-		"refresh_token": newRefreshToken,
-	}
-	h.respondJSON(w, response, http.StatusOK)
+	h.respondJSON(w, AuthResponse{
+		UserID:       userID.String(),
+		AccessToken:  newAccessToken,
+		RefreshToken: newRefreshToken,
+	}, http.StatusOK)
 	return nil
 }
 
@@ -54,12 +65,12 @@ func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	SetUserIDInRequestState(r.Context(), userID)
-	response := map[string]string{
-		"user_id":  userInfo.ID.String(),
-		"username": userInfo.Username,
-		"email":    userInfo.Email,
-	}
-	h.respondJSON(w, response, http.StatusOK)
+
+	h.respondJSON(w, UserResponse{
+		UserID:   userInfo.ID.String(),
+		Username: userInfo.Username,
+		Email:    userInfo.Email,
+	}, http.StatusOK)
 	return nil
 }
 
@@ -97,12 +108,11 @@ func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) error 
 
 	authbundle.SetAuthCookies(w, accessToken, refreshToken, h.authConfig)
 
-	response := map[string]string{
-		"user_id":       id.String(),
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
-	}
-	h.respondJSON(w, response, http.StatusOK)
+	h.respondJSON(w, AuthResponse{
+		UserID:       id.String(),
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, http.StatusOK)
 	return nil
 }
 
@@ -111,8 +121,6 @@ type SignupRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
-
-
 
 func (h *Handler) HandleUserSignup(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context() // リクエストのコンテキストを取得
@@ -145,11 +153,10 @@ func (h *Handler) HandleUserSignup(w http.ResponseWriter, r *http.Request) error
 
 	authbundle.SetAuthCookies(w, accessToken, refreshToken, h.authConfig)
 
-	response := map[string]string{
-		"user_id":       id.String(),
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
-	}
-	h.respondJSON(w, response, http.StatusOK)
+	h.respondJSON(w, AuthResponse{
+		UserID:       id.String(),
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, http.StatusOK)
 	return nil
 }

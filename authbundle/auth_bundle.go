@@ -171,8 +171,9 @@ func NewAuthBundle(cfg *AuthConfig, refreshTokenStore *RefreshTokenStore) *AuthB
 
 // A AuthClaims represents the JWT claims for authentication.
 type AuthClaims struct {
-	UserID uuid.UUID `json:"sub"`
 	jwt.RegisteredClaims
+
+	UserID uuid.UUID `json:"sub"`
 }
 
 // GenerateAccessToken generates a new access token for the given user ID.
