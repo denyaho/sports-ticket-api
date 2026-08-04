@@ -37,6 +37,11 @@ type AuthLoginRequest struct {
 	Password string `json:"password"`
 }
 
+const (
+	CookieAccessToken  = "access_token"
+	CookieRefreshToken = "refresh_token"
+)
+
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token,omitempty"`
 }
@@ -324,7 +329,7 @@ func HashPassword(password string) (string, error) {
 func SetAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, cfg *AuthConfig) {
 	// アクセストークンCookie
 	http.SetCookie(w, &http.Cookie{
-		Name:     "access_token",
+		Name:     CookieAccessToken,
 		Value:    accessToken,
 		Path:     "/",
 		Domain:   cfg.CookieDomain,
@@ -335,7 +340,7 @@ func SetAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, cfg
 	})
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "refresh_token",
+		Name:     CookieRefreshToken,
 		Value:    refreshToken,
 		Path:     "/",
 		Domain:   cfg.CookieDomain,
@@ -347,11 +352,11 @@ func SetAuthCookies(w http.ResponseWriter, accessToken, refreshToken string, cfg
 }
 
 func ReadAuthCookies(_ http.ResponseWriter, r *http.Request) (string, string) {
-	accessToken, err := r.Cookie("access_token")
+	accessToken, err := r.Cookie(CookieAccessToken)
 	if err != nil {
 		accessToken = &http.Cookie{}
 	}
-	refreshToken, err := r.Cookie("refresh_token")
+	refreshToken, err := r.Cookie(CookieRefreshToken)
 	if err != nil {
 		refreshToken = &http.Cookie{}
 	}

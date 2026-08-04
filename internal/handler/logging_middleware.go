@@ -63,11 +63,12 @@ func (h *Handler) Logging(next http.Handler) http.Handler {
 		err := holder.Err
 		userID := holder.UserID.String()
 
-		if statusCode >= 400 && statusCode < 500 {
+		switch {
+		case statusCode >= 400 && statusCode < 500:
 			h.warnLog(r, reqURL, statusCode, userID, hostIP, err)
-		} else if statusCode >= 500 {
+		case statusCode >= 500:
 			h.errorLog(r, reqURL, statusCode, userID, hostIP, err)
-		} else {
+		default:
 			h.accessLog(r, reqURL, statusCode, userID, hostIP)
 		}
 	})

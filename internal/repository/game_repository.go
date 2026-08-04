@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 
 	"errors"
 
@@ -19,11 +20,12 @@ type GameRepository interface {
 }
 
 type postgreGamesRepository struct {
-	DB *sql.DB
+	DB     *sql.DB
+	logger *slog.Logger
 }
 
-func NewGameRepository(db *sql.DB) GameRepository {
-	return &postgreGamesRepository{DB: db}
+func NewGameRepository(db *sql.DB, logger *slog.Logger) GameRepository {
+	return &postgreGamesRepository{DB: db, logger: logger}
 }
 
 func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game, error) {
@@ -43,7 +45,7 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 
 	defer func() {
 		if closeErr := rows.Close(); closeErr != nil {
-			fmt.Printf("error closing rows: %v", closeErr.Error())
+			r.logger.WarnContext(ctx, "close rows failed", "error", closeErr)
 		}
 	}()
 

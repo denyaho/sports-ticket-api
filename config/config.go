@@ -14,6 +14,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Auth     AuthConfigTmp
+	Env      string
 }
 
 type ServerConfig struct {
@@ -87,16 +88,18 @@ func Load(logger *slog.Logger) (*Config, error) {
 			CookieDomain:    getEnv("COOKIE_DOMAIN", ""),
 			CookieSecure:    _getEnvBool("COOKIE_SECURE", true),
 		},
+		Env: getEnv("ENV", "development"),
 	}
-	if cfg.Database.User == "" {
+	switch {
+	case cfg.Database.User == "":
 		return nil, fmt.Errorf("DB_USER is required")
-	} else if cfg.Database.Password == "" {
+	case cfg.Database.Password == "":
 		return nil, fmt.Errorf("DB_PASSWORD is required")
-	} else if cfg.Database.Name == "" {
+	case cfg.Database.Name == "":
 		return nil, fmt.Errorf("DB_NAME is required")
-	} else if cfg.Database.Host == "" {
+	case cfg.Database.Host == "":
 		return nil, fmt.Errorf("DB_HOST is required")
-	} else if !cfg.Auth.CookieSecure {
+	case !cfg.Auth.CookieSecure && cfg.Env == "production":
 		return nil, fmt.Errorf("COOKIE_SECURE is false")
 	}
 

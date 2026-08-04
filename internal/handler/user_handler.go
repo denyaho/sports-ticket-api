@@ -112,6 +112,8 @@ type SignupRequest struct {
 	Password string `json:"password"`
 }
 
+
+
 func (h *Handler) HandleUserSignup(w http.ResponseWriter, r *http.Request) error {
 	ctx := r.Context() // リクエストのコンテキストを取得
 	var reqBody SignupRequest

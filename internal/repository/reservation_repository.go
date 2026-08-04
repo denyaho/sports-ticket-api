@@ -393,7 +393,8 @@ func (r *reservationRepository) CreateReservation(
 					AND reservations.expires_at < NOW()
 				))))LIMIT $3 FOR UPDATE OF tickets`
 		// skip locked でテストしてみる
-		ids, err := r.selectAvailableTickets(ctx, query, tx, gameID, seatGrade, seatQuantity)
+		var ids []uuid.UUID
+		ids, err = r.selectAvailableTickets(ctx, query, tx, gameID, seatGrade, seatQuantity)
 		if err != nil {
 			return nil, err
 		}

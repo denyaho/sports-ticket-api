@@ -8,9 +8,6 @@ issues:
   # Set to 0 to disable.
   # Default: 3
   max-same-issues: 50
-  exclude-rules:
-    - path: cmd/seed/
-      linters: [goconst, gochecknoglobals]
 
 formatters:
   enable:
@@ -463,3 +460,7 @@ linters:
           - gosec
           - noctx
           - wrapcheck
+      - path: cmd/seed/
+        linters:
+          - goconst
+          - gochecknoglobals

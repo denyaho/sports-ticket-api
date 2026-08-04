@@ -42,8 +42,22 @@ cmd/seed/main.go     — seed バイナリ（Teams + Seats 実装済み、Games 
 config/config.go     — 環境変数ロード（godotenv）
 handler/
   handler.go         — Handler 構造体、Routes()、respondJSON/respondError
+  error_handler.go.  - エラー発生時にコンテキストにエラーを埋め込み、respondErrorでエラーを返すことをハンドリング
+  game_handler.go.   - 全ての試合情報の取得、IDごとの試合情報の取得をハンドリング
+  reservation_handler.go - 予約情報の取得、作成等のクエリをハンドリング
+  seats_handler.go.  - 試合IDで座席情報の取得を行う
+  user_handler.go.   - sign in, login などの動作を行う
   health.go          — GET /health
   middleware.go      — AuthRequired middleware
+  logging_middleware.go - logging middleware
+domain/              - それぞれ必要なデータ構造の定義
+  game.go
+  reservations.go
+  seats.go
+  tickets.go
+  user.go
+repository/          -　予約作成等のSQLクエリを行う
+service/             - サービス層の実装
 authbundle/
   auth_bundle.go     — JWT(HS256)、bcrypt、リフレッシュトークン、Cookie ヘルパ
 migrations/          — golang-migrate 形式（.up.sql / .down.sql）

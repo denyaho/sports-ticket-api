@@ -82,7 +82,7 @@ func run(logger *slog.Logger) error {
 	userrepo := repository.NewUserRepository(db)
 	userservice := service.NewUserService(userrepo)
 
-	gamerepo := repository.NewGameRepository(db)
+	gamerepo := repository.NewGameRepository(db, logger)
 	gameService := service.NewGameService(gamerepo)
 
 	seatsrepo := repository.NewSeatsRepository(db)
@@ -140,7 +140,7 @@ func run(logger *slog.Logger) error {
 		}
 	}()
 	select {
-	case err := <-errCh:
+	case err = <-errCh:
 		return err
 	case <-ctx.Done():
 		logger.Info("Shutting down server...")

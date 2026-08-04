@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -12,54 +11,51 @@ import (
 
 func (h *Handler) HandleError(w http.ResponseWriter, r *http.Request, err error) {
 	SetErrorInRequestState(r.Context(), err)
+	h.respondError(w, toStatus(err))
+}
 
+func toStatus(err error) int {
 	var maxErr *http.MaxBytesError
 	var syntaxErr *json.SyntaxError
 	var unmarshalTypeErr *json.UnmarshalTypeError
-
 	switch {
 	case errors.As(err, &maxErr):
-		h.respondError(w, err, http.StatusRequestEntityTooLarge)
+		return http.StatusRequestEntityTooLarge
 	case errors.As(err, &syntaxErr):
-		h.respondError(w, err, http.StatusBadRequest)
+		return http.StatusBadRequest
 	case errors.As(err, &unmarshalTypeErr):
-		h.respondError(w, err, http.StatusBadRequest)
-
+		return http.StatusBadRequest
 	case errors.Is(err, context.Canceled):
-		h.respondError(w, err, http.StatusRequestTimeout) // 408 Request Timeout
+		return http.StatusRequestTimeout // 408 Request Timeout
 	case errors.Is(err, context.DeadlineExceeded):
-		h.respondError(w, err, http.StatusGatewayTimeout) // 504 Gateway Timeout
-	case errors.Is(err, sql.ErrConnDone):
-		h.respondError(w, err, http.StatusInternalServerError)
-	case errors.Is(err, sql.ErrNoRows):
-		h.respondError(w, err, http.StatusNotFound)
+		return http.StatusGatewayTimeout // 504 Gateway Timeout
 	case errors.Is(err, apperror.ErrNotFound):
-		h.respondError(w, err, http.StatusNotFound)
+		return http.StatusNotFound
 	case errors.Is(err, apperror.ErrInsufficientTickets):
-		h.respondError(w, err, http.StatusConflict) // 409 Conflict
+		return http.StatusConflict // 409 Conflict
 	case errors.Is(err, apperror.ErrUserNotFound):
-		h.respondError(w, err, http.StatusNotFound)
+		return http.StatusNotFound
 	case errors.Is(err, apperror.ErrDatabase), errors.Is(err, apperror.ErrInternal):
-		h.respondError(w, err, http.StatusInternalServerError)
+		return http.StatusInternalServerError
 	case errors.Is(err, apperror.ErrDuplicateEmail):
-		h.respondError(w, err, http.StatusConflict)
+		return http.StatusConflict
 	case errors.Is(err, apperror.ErrUnauthorized):
-		h.respondError(w, err, http.StatusUnauthorized)
+		return http.StatusUnauthorized
 	case errors.Is(err, apperror.ErrReservationExpired):
-		h.respondError(w, err, http.StatusGone) // 410 Gone
+		return http.StatusGone // 410 Gone
 	case errors.Is(err, apperror.ErrReservationConflict):
-		h.respondError(w, err, http.StatusConflict) // 409 Conflict
+		return http.StatusConflict // 409 Conflict
 	case errors.Is(err, apperror.ErrReservationNotPending):
-		h.respondError(w, err, http.StatusBadRequest) // 400 Bad Request
+		return http.StatusBadRequest // 400 Bad Request
 	case errors.Is(err, apperror.ErrBadRequest):
-		h.respondError(w, err, http.StatusBadRequest) // 400 Bad Request
+		return http.StatusBadRequest // 400 Bad Request
 	case errors.Is(err, apperror.ErrInvalidInput):
-		h.respondError(w, err, http.StatusBadRequest) // 400 Bad Request
+		return http.StatusBadRequest // 400 Bad Request
 	case errors.Is(err, apperror.ErrAuthenticationFailed):
-		h.respondError(w, err, http.StatusUnauthorized) // 401 Unauthorized
+		return http.StatusUnauthorized // 401 Unauthorized
 	case errors.Is(err, apperror.ErrForbidden):
-		h.respondError(w, err, http.StatusForbidden) // 403 Forbidden
+		return http.StatusForbidden // 403 Forbidden
 	default:
-		h.respondError(w, err, http.StatusInternalServerError)
+		return http.StatusInternalServerError
 	}
 }

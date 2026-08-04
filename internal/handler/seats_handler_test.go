@@ -32,21 +32,21 @@ func TestGetSeatsByGameID(t *testing.T) {
 	}{
 		{
 			name:         "success",
-			setupContext: createContext,
+			setupContext: CreateContext,
 			gameID:       gameID,
 			fakeErr:      nil,
 			expectedErr:  http.StatusOK,
 		},
 		{
 			name:         "InternalServerError",
-			setupContext: createContext,
+			setupContext: CreateContext,
 			gameID:       gameID,
 			fakeErr:      apperror.ErrDatabase,
 			expectedErr:  http.StatusInternalServerError,
 		},
 		{
 			name:         "BadRequest",
-			setupContext: createContext,
+			setupContext: CreateContext,
 			gameID:       "invalid-uuid",
 			fakeErr:      apperror.ErrBadRequest,
 			expectedErr:  http.StatusBadRequest,

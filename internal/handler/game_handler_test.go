@@ -34,13 +34,13 @@ func TestGetAllGames(t *testing.T) {
 	}{
 		{
 			name:         "success",
-			setupContext: createContext,
+			setupContext: CreateContext,
 			fakeErr:      nil,
 			expectedErr:  http.StatusOK,
 		},
 		{
 			name:         "InternalServerError",
-			setupContext: createContext,
+			setupContext: CreateContext,
 			fakeErr:      apperror.ErrDatabase,
 			expectedErr:  http.StatusInternalServerError,
 		},
@@ -78,28 +78,28 @@ func TestGetGameByID(t *testing.T) {
 	}{
 		{
 			name:         "success",
-			setupContext: createContext,
+			setupContext: CreateContext,
 			gameID:       gameID,
 			fakeErr:      nil,
 			expectedErr:  http.StatusOK,
 		},
 		{
 			name:         "InternalServerError",
-			setupContext: createContext,
+			setupContext: CreateContext,
 			gameID:       gameID,
 			fakeErr:      apperror.ErrDatabase,
 			expectedErr:  http.StatusInternalServerError,
 		},
 		{
 			name:         "BadRequest",
-			setupContext: createContext,
+			setupContext: CreateContext,
 			gameID:       "invalid-uuid",
 			fakeErr:      nil,
 			expectedErr:  http.StatusBadRequest,
 		},
 		{
 			name:         "NotFound",
-			setupContext: createContext,
+			setupContext: CreateContext,
 			gameID:       gameID,
 			fakeErr:      apperror.ErrNotFound,
 			expectedErr:  http.StatusNotFound,

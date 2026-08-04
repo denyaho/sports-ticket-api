@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -91,18 +92,19 @@ func (h *Handler) Routes() http.Handler {
 }
 
 func (h *Handler) respondJSON(w http.ResponseWriter, data any, status int) {
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(data); err != nil {
+		h.logger.Error("encode response failed", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		h.logger.Error("Failed to encode response", "error", err)
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		h.logger.Error("write response failed", "error", err)
 	}
 }
 
-func (h *Handler) respondError(w http.ResponseWriter, err error, status int) {
-	message := http.StatusText(status)
-	response := map[string]string{
-		"error": message,
-	}
-	h.respondJSON(w, response, status)
+func (h *Handler) respondError(w http.ResponseWriter, status int) {
+	h.respondJSON(w, map[string]string{"error": http.StatusText(status)}, status)
 }
