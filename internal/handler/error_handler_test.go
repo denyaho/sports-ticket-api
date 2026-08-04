@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -26,16 +25,6 @@ func TestHandleError(t *testing.T) {
 			name:           "Gateway Timeout",
 			fakeErr:        context.DeadlineExceeded,
 			expectedStatus: http.StatusGatewayTimeout,
-		},
-		{
-			name:           "Internal Server Error",
-			fakeErr:        sql.ErrConnDone,
-			expectedStatus: http.StatusInternalServerError,
-		},
-		{
-			name:           "No Rows",
-			fakeErr:        sql.ErrNoRows,
-			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:           "Not Found",

@@ -130,7 +130,7 @@ func TestHandleGetUser(t *testing.T) {
 		},
 		{
 			name:         "Not authorized",
-			setupContext: createContext,
+			setupContext: context.Background,
 			userInfo:     nil,
 			fakeErr:      nil,
 			expectedErr:  http.StatusUnauthorized,
