@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -10,17 +9,10 @@ import (
 	"42tokyo-road-to-dena-server/internal/apperror"
 )
 
-func nothing() {
-	fmt.Println("nothing")
-	fmt.Println("nothing")
-}
-
 // AuthRequired はアクセストークンを検証し、context に userID を注入する
 func (h *Handler) AuthRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := h.extractTokenFromRequest(r)
-
-		nothing()
 
 		// トークンがない場合は認証エラー
 		if token == "" {

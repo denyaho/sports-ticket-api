@@ -43,7 +43,7 @@ func (h *Handler) HandleRefreshToken(w http.ResponseWriter, r *http.Request) err
 }
 
 func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) error {
-	//リクエストに対する認証
+	// リクエストに対する認証
 	userID, ok := authbundle.GetUserIDFromContext(r.Context())
 	if !ok {
 		return apperror.ErrUnauthorized

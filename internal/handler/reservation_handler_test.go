@@ -15,11 +15,11 @@ import (
 )
 
 type StubreservationService struct {
-	FakeCancelReservation        func(ctx context.Context, reservationID, userID uuid.UUID) error
-	FakeCreateReservation        func(ctx context.Context, reqBody *domain.ReservationRequest, userID uuid.UUID) (*domain.Reservation, error)
-	FakeGetUserReservations      func(ctx context.Context, userID uuid.UUID) ([]*domain.Reservation, error)
-	FakeGetReservationByID       func(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error)
-	FakePurchaseReservation      func(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error)
+	FakeCancelReservation   func(ctx context.Context, reservationID, userID uuid.UUID) error
+	FakeCreateReservation   func(ctx context.Context, reqBody *domain.ReservationRequest, userID uuid.UUID) (*domain.Reservation, error)
+	FakeGetUserReservations func(ctx context.Context, userID uuid.UUID) ([]*domain.Reservation, error)
+	FakeGetReservationByID  func(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error)
+	FakePurchaseReservation func(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error)
 	FakeExpiredReservations func(ctx context.Context) error
 }
 
@@ -27,19 +27,32 @@ func (m *StubreservationService) CancelReservation(ctx context.Context, reservat
 	return m.FakeCancelReservation(ctx, reservationID, userID)
 }
 
-func (m *StubreservationService) CreateReservation(ctx context.Context, reqBody *domain.ReservationRequest, userID uuid.UUID) (*domain.Reservation, error) {
+func (m *StubreservationService) CreateReservation(
+	ctx context.Context,
+	reqBody *domain.ReservationRequest,
+	userID uuid.UUID,
+) (*domain.Reservation, error) {
 	return m.FakeCreateReservation(ctx, reqBody, userID)
 }
 
-func (m *StubreservationService) GetUserReservations(ctx context.Context, userID uuid.UUID) ([]*domain.Reservation, error) {
+func (m *StubreservationService) GetUserReservations(
+	ctx context.Context,
+	userID uuid.UUID,
+) ([]*domain.Reservation, error) {
 	return m.FakeGetUserReservations(ctx, userID)
 }
 
-func (m *StubreservationService) GetReservationByID(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error) {
+func (m *StubreservationService) GetReservationByID(
+	ctx context.Context,
+	reservationID, userID uuid.UUID,
+) (*domain.Reservation, error) {
 	return m.FakeGetReservationByID(ctx, reservationID, userID)
 }
 
-func (m *StubreservationService) PurchaseReservation(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error) {
+func (m *StubreservationService) PurchaseReservation(
+	ctx context.Context,
+	reservationID, userID uuid.UUID,
+) (*domain.Reservation, error) {
 	return m.FakePurchaseReservation(ctx, reservationID, userID)
 }
 
@@ -133,7 +146,12 @@ func TestHandleCancelReservation(t *testing.T) {
 					},
 				},
 			}
-			request := httptest.NewRequestWithContext(tt.setupContext(), "DELETE", "/api/reservations/"+tt.reservationID, nil)
+			request := httptest.NewRequestWithContext(
+				tt.setupContext(),
+				"DELETE",
+				"/api/reservations/"+tt.reservationID,
+				nil,
+			)
 			response := httptest.NewRecorder()
 			request.SetPathValue("id", tt.reservationID)
 
@@ -240,7 +258,12 @@ func TestHandleCreateReservation(t *testing.T) {
 					},
 				},
 			}
-			request := httptest.NewRequestWithContext(tt.setupContext(), "POST", "/api/reservations", strings.NewReader(tt.reqBody))
+			request := httptest.NewRequestWithContext(
+				tt.setupContext(),
+				"POST",
+				"/api/reservations",
+				strings.NewReader(tt.reqBody),
+			)
 			response := httptest.NewRecorder()
 
 			h.toHandler(h.HandleCreateReservation)(response, request)
@@ -363,7 +386,12 @@ func TestHandleGetReservationByID(t *testing.T) {
 					},
 				},
 			}
-			request := httptest.NewRequestWithContext(tt.setupContext(), "GET", "/api/reservations/"+tt.reservationID, nil)
+			request := httptest.NewRequestWithContext(
+				tt.setupContext(),
+				"GET",
+				"/api/reservations/"+tt.reservationID,
+				nil,
+			)
 			response := httptest.NewRecorder()
 			request.SetPathValue("id", tt.reservationID)
 
@@ -432,7 +460,12 @@ func TestHandlePurchaseReservation(t *testing.T) {
 					},
 				},
 			}
-			request := httptest.NewRequestWithContext(tt.setupContext(), "POST", "/api/reservations/"+tt.reservationID+"/purchase", nil)
+			request := httptest.NewRequestWithContext(
+				tt.setupContext(),
+				"POST",
+				"/api/reservations/"+tt.reservationID+"/purchase",
+				nil,
+			)
 			response := httptest.NewRecorder()
 			request.SetPathValue("id", tt.reservationID)
 

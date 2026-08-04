@@ -40,7 +40,7 @@ func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID uu
 
 	rows, err := r.DB.QueryContext(ctx, query, gameID)
 	if err != nil {
-		return nil, fmt.Errorf("error querying seats by game ID: %w: %w", apperror.ErrDatabase, err)
+		return nil, fmt.Errorf("error querying seats by game ID: %w: %v", apperror.ErrDatabase, err.Error())
 	}
 	defer func() {
 		_ = rows.Close()
@@ -50,12 +50,12 @@ func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID uu
 		var seat domain.Seat
 		err = rows.Scan(&seat.Grade, &seat.Price, &seat.Total, &seat.Available, &seat.Reserved, &seat.Sold)
 		if err != nil {
-			return nil, fmt.Errorf("error scanning seat: %w: %w", apperror.ErrDatabase, err)
+			return nil, fmt.Errorf("error scanning seat: %w: %v", apperror.ErrDatabase, err.Error())
 		}
 		seats = append(seats, seat)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating rows: %w: %w", apperror.ErrDatabase, err)
+		return nil, fmt.Errorf("error iterating rows: %w: %v", apperror.ErrDatabase, err.Error())
 	}
 	return seats, nil
 }

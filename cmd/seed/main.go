@@ -4,7 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 	"strconv"
 
 	"42tokyo-road-to-dena-server/config"
@@ -13,14 +14,13 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var teamNames = []string{
-	"Team A",
-	"Team B",
-	"Team C",
-	"Team D",
-}
-
 func _seedTeams(ctx context.Context, db *sql.DB) error {
+	var teamNames = []string{
+		"Team A",
+		"Team B",
+		"Team C",
+		"Team D",
+	}
 	query := "INSERT INTO Teams (id, name) VALUES ($1, $2)"
 	for _, name := range teamNames {
 		uuid, err := uuid.NewUUID()
@@ -74,7 +74,16 @@ func _seedGames(ctx context.Context, db *sql.DB) error {
 		if err != nil {
 			return err
 		}
-		_, err = db.ExecContext(ctx, query, uuid.String(), homeTeamID, awayTeamID, game.gameDate, game.startTime, game.venue)
+		_, err = db.ExecContext(
+			ctx,
+			query,
+			uuid.String(),
+			homeTeamID,
+			awayTeamID,
+			game.gameDate,
+			game.startTime,
+			game.venue,
+		)
 		if err != nil {
 			return err
 		}
@@ -94,7 +103,7 @@ func _seedSeats(ctx context.Context, db *sql.DB) error {
 	query := "INSERT INTO Seats (id, grade, price) VALUES ($1, $2, $3)"
 	seatsPerGrade := 3
 	for _, grade := range seatGrade {
-		for i := 0; i < seatsPerGrade; i++ {
+		for range seatsPerGrade {
 			uuid, err := uuid.NewUUID()
 			if err != nil {
 				return err
@@ -189,7 +198,10 @@ func _seedTickets(ctx context.Context, db *sql.DB) error {
 }
 
 func _clearTables(ctx context.Context, db *sql.DB) error {
-	_, err := db.ExecContext(ctx, "TRUNCATE TABLE users, games, seats, teams, tickets, reservations, refresh_tokens CASCADE")
+	_, err := db.ExecContext(
+		ctx,
+		"TRUNCATE TABLE users, games, seats, teams, tickets, reservations, refresh_tokens CASCADE",
+	)
 	if err != nil {
 		return err
 	}
@@ -197,44 +209,59 @@ func _clearTables(ctx context.Context, db *sql.DB) error {
 }
 
 func main() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	if err := run(logger); err != nil {
+		logger.Error("Seeding failed", "error", err)
+	}
+	logger.Info("Seeding completed successfully.")
+}
+
+func run(logger *slog.Logger) error {
 	dbDriver := "postgres"
-	cfg, err := config.Load()
+	cfg, err := config.Load(logger)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	DBcfg := cfg.Database
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", DBcfg.Host, DBcfg.Port, DBcfg.User, DBcfg.Password, DBcfg.Name)
+	dsn := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		DBcfg.Host,
+		DBcfg.Port,
+		DBcfg.User,
+		DBcfg.Password,
+		DBcfg.Name,
+	)
 
 	db, err := sql.Open(dbDriver, dsn)
-	fmt.Printf("Connecting to database with DSN: %s\n", dsn)
+	logger.Info("Connecting to database", "dsn", dsn)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	defer func() {
 		if err = db.Close(); err != nil {
-			log.Printf("Failed to close db connection: %v", err)
+			logger.Error("failed to close database connection", "error", err)
 		}
 	}()
 
 	err = _clearTables(context.Background(), db)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	ctx := context.Background()
 	if err = _seedTeams(ctx, db); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if err = _seedGames(ctx, db); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if err = _seedSeats(ctx, db); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if err = _seedTickets(ctx, db); err != nil {
-		log.Fatal(err)
+		return err
 	}
-	log.Println("Seeding completed successfully.")
+	return nil
 }

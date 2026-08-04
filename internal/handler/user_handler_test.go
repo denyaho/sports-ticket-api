@@ -93,7 +93,12 @@ func TestHandleUserSignup(t *testing.T) {
 					},
 				},
 			}
-			request := httptest.NewRequestWithContext(tt.setupContext(), "POST", "/api/user/signup", strings.NewReader(tt.reqBody))
+			request := httptest.NewRequestWithContext(
+				tt.setupContext(),
+				"POST",
+				"/api/user/signup",
+				strings.NewReader(tt.reqBody),
+			)
 			response := httptest.NewRecorder()
 
 			h.toHandler(h.HandleUserSignup)(response, request)
@@ -220,7 +225,12 @@ func TestHandleUserLogin(t *testing.T) {
 					},
 				},
 			}
-			request := httptest.NewRequestWithContext(tt.setupContext(), "POST", "/api/user/login", strings.NewReader(tt.reqBody))
+			request := httptest.NewRequestWithContext(
+				tt.setupContext(),
+				"POST",
+				"/api/user/login",
+				strings.NewReader(tt.reqBody),
+			)
 			response := httptest.NewRecorder()
 
 			h.toHandler(h.HandleUserLogin)(response, request)

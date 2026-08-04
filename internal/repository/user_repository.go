@@ -30,7 +30,8 @@ func (r *postgreUserRepository) CreateUser(ctx context.Context, user *domain.Use
 	query := "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id"
 
 	var id uuid.UUID
-	if err := r.DB.QueryRowContext(ctx, query, &user.ID, &user.Username, &user.Email, &user.Password).Scan(&id); err != nil {
+	if err := r.DB.QueryRowContext(ctx, query, &user.ID, &user.Username, &user.Email, &user.Password).
+		Scan(&id); err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
 			switch pqErr.Code {
@@ -49,7 +50,8 @@ func (r *postgreUserRepository) FindUserByID(ctx context.Context, id uuid.UUID) 
 	query := "SELECT id, username, email, password_hash FROM users WHERE id = $1"
 
 	var user domain.User
-	if err := r.DB.QueryRowContext(ctx, query, id).Scan(&user.ID, &user.Username, &user.Email, &user.Password); err != nil {
+	if err := r.DB.QueryRowContext(ctx, query, id).
+		Scan(&user.ID, &user.Username, &user.Email, &user.Password); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, apperror.ErrUserNotFound
 		}

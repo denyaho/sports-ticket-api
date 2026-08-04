@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -23,23 +24,40 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
-		slog.Error("Server failed", "error", err)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	if err := run(logger); err != nil {
+		logger.Error("Error running server", "error", err)
 		os.Exit(1)
 	}
+	logger.Info("Server exited gracefully")
 }
 
-
-func run() error {
-	// 設定の読み込み
-	cfg, err := config.Load()
+func setupDatabase(logger *slog.Logger) () {
+	cfg, err := config.Load(logger)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
-	//DB接続の初期化
+	dbDriver := ""
+	
+}
+
+func run(logger *slog.Logger) error {
+	// 設定の読み込み
+	cfg, err := config.Load(logger)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+	// DB接続の初期化
 	dbDriver := "postgres"
-	DBcfg := cfg.Database
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", DBcfg.Host, DBcfg.Port, DBcfg.User, DBcfg.Password, DBcfg.Name)
+	dBcfg := cfg.Database
+	dsn := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		dBcfg.Host,
+		dBcfg.Port,
+		dBcfg.User,
+		dBcfg.Password,
+		dBcfg.Name,
+	)
 
 	authConfig := &authbundle.AuthConfig{
 		JWTSecret:    cfg.Auth.JWTSecret,
@@ -52,17 +70,19 @@ func run() error {
 	}
 
 	db, err := sql.Open(dbDriver, dsn)
-
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
+
 	defer func() {
 		if err = db.Close(); err != nil {
 			log.Printf("Failed to close db connection: %v", err)
 		}
 	}()
+	pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	if err = db.Ping(); err != nil {
+	if err = db.PingContext(pingCtx); err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 	// ハンドラーの初期化
@@ -80,8 +100,6 @@ func run() error {
 
 	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, dbDriver))
 	authbundle := authbundle.NewAuthBundle(authConfig, store)
-
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	h := handler.New(
 		authbundle,
@@ -105,13 +123,13 @@ func run() error {
 	errCh := make(chan error, 1)
 	go func() {
 		log.Printf("Starting server on %s", srv.Addr)
-		if errServ := srv.ListenAndServe(); errServ != nil && errServ != http.ErrServerClosed {
+		if errServ := srv.ListenAndServe(); errServ != nil && !errors.Is(errServ, http.ErrServerClosed) {
 			errCh <- fmt.Errorf("failed to start server: %w", errServ)
 		}
 	}()
 
 	// シグナルハンドリング
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) //監視すべきシグナルを列挙する
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) // 監視すべきシグナルを列挙する
 
 	defer stop()
 	go func() {
@@ -128,20 +146,25 @@ func run() error {
 			}
 		}
 	}()
-
 	select {
 	case err := <-errCh:
 		return err
 	case <-ctx.Done():
 		logger.Info("Shutting down server...")
+		stop()
 	}
 	// グレースフルシャットダウン
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	if err = srv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("Server forced to shutdown: %v", err)
+		return fmt.Errorf("server shutdown failed: %w", err)
+	}
+	select {
+	case err := <-errCh:
+		return err
+	default:
 	}
 	log.Println("Server exited")
-	return nil	
+	return nil
 }

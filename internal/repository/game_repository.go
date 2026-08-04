@@ -4,11 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+
+	"errors"
 
 	"42tokyo-road-to-dena-server/internal/apperror"
 	"42tokyo-road-to-dena-server/internal/domain"
-	"errors"
 
 	"github.com/google/uuid"
 )
@@ -38,12 +38,12 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 
 	rows, err := r.DB.QueryContext(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("execute query: %w: %w", apperror.ErrDatabase, err)
+		return nil, fmt.Errorf("execute query: trying to get all games: %w: %v", apperror.ErrDatabase, err.Error())
 	}
 
 	defer func() {
 		if err := rows.Close(); err != nil {
-			log.Printf("Error closing rows: %v", err)
+			fmt.Printf("error closing rows: %v", err.Error())
 		}
 	}()
 
@@ -54,13 +54,12 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 			&game.HomeTeam.ID, &game.HomeTeam.Name,
 			&game.AwayTeam.ID, &game.AwayTeam.Name)
 		if err != nil {
-			return nil, fmt.Errorf("scan row: %w: %w", apperror.ErrDatabase, err)
+			return nil, fmt.Errorf("execute scan rows %w: %v", apperror.ErrDatabase, err.Error())
 		}
 		games = append(games, game)
 	}
 	if err = rows.Err(); err != nil {
-		log.Printf("Error iterating rows: %v", err)
-		return nil, apperror.ErrDatabase
+		return nil, fmt.Errorf("error iterating rows: %w: %v", apperror.ErrDatabase, err.Error())
 	}
 	return games, nil
 }
@@ -80,13 +79,11 @@ func (r *postgreGamesRepository) GetGameByID(ctx context.Context, id uuid.UUID) 
 		&game.HomeTeam.ID, &game.HomeTeam.Name,
 		&game.AwayTeam.ID, &game.AwayTeam.Name); err != nil {
 		switch {
-			case errors.Is(err, sql.ErrNoRows):
-				return nil, fmt.Errorf("game not found: %w: %w", apperror.ErrNotFound, err)
-			case err != nil:
-				return nil, fmt.Errorf("get game %s: %w: %w", id, apperror.ErrDatabase, err)
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, fmt.Errorf("game %s not found: %w", id, apperror.ErrNotFound)
+		default:
+			return nil, fmt.Errorf("get game %s: %w: %v", id, apperror.ErrDatabase, err.Error())
 		}
-		log.Printf("Error executing query: %v", err)
-		return nil, apperror.ErrDatabase
 	}
 	return &game, nil
 }

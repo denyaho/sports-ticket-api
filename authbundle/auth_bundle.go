@@ -6,8 +6,10 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"42tokyo-road-to-dena-server/internal/apperror"
@@ -115,8 +117,8 @@ func (st *RefreshTokenStore) GetByTokenHash(ctx context.Context, tokenHash strin
 	`
 	err := st.db.GetContext(ctx, &token, query, tokenHash)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperror.ErrNotFound
 		}
 		return nil, err
 	}
@@ -185,7 +187,7 @@ func (a *AuthBundle) GenerateAccessToken(userID uuid.UUID) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(a.cfg.JWTSecret))
 	if err != nil {
-		return "", fmt.Errorf("%w: failed to sign token: %v", apperror.ErrInternal, err)
+		return "", fmt.Errorf("%w: failed to sign token: %v", apperror.ErrInternal, err.Error())
 	}
 
 	return tokenString, nil
@@ -219,13 +221,7 @@ func (a *AuthBundle) ValidateAccessToken(tokenString string) (*AuthClaims, error
 	}
 
 	// Audience検証
-	validAudience := false
-	for _, aud := range claims.Audience {
-		if aud == a.cfg.JWTAudience {
-			validAudience = true
-			break
-		}
-	}
+	validAudience := slices.Contains(claims.Audience, a.cfg.JWTAudience)
 	if !validAudience {
 		return nil, apperror.ErrUnauthorized
 	}
@@ -238,7 +234,7 @@ func (a *AuthBundle) GenerateRefreshToken(ctx context.Context, userID uuid.UUID)
 	// ランダムトークン生成
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
-		return "", fmt.Errorf("%w: failed to generate random token: %v", apperror.ErrInternal, err)
+		return "", fmt.Errorf("%w: failed to generate random token: %v", apperror.ErrInternal, err.Error())
 	}
 	tokenString := hex.EncodeToString(tokenBytes)
 
@@ -257,7 +253,7 @@ func (a *AuthBundle) GenerateRefreshToken(ctx context.Context, userID uuid.UUID)
 	}
 
 	if err := a.refreshTokenStore.Create(ctx, refreshToken); err != nil {
-		return "", fmt.Errorf("%w: failed to save refresh token: %v", apperror.ErrInternal, err)
+		return "", fmt.Errorf("%w: failed to save refresh token: %v", apperror.ErrInternal, err.Error())
 	}
 
 	return tokenString, nil
@@ -301,13 +297,13 @@ func (a *AuthBundle) RotateRefreshToken(ctx context.Context, oldTokenString stri
 	hash := sha256.Sum256([]byte(oldTokenString))
 	tokenHash := hex.EncodeToString(hash[:])
 	if err = a.refreshTokenStore.RevokeByTokenHash(ctx, tokenHash); err != nil {
-		return "", fmt.Errorf("%w: failed to revoke old token: %v", apperror.ErrInternal, err)
+		return "", fmt.Errorf("%w: failed to revoke old token: %v", apperror.ErrInternal, err.Error())
 	}
 
 	// 新トークン生成
 	newToken, err := a.GenerateRefreshToken(ctx, oldToken.UserID)
 	if err != nil {
-		return "", fmt.Errorf("%w: failed to generate new token: %v", apperror.ErrInternal, err)
+		return "", fmt.Errorf("%w: failed to generate new token: %v", apperror.ErrInternal, err.Error())
 	}
 
 	return newToken, nil
@@ -317,7 +313,7 @@ func (a *AuthBundle) RotateRefreshToken(ctx context.Context, oldTokenString stri
 func HashPassword(password string) (string, error) {
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", fmt.Errorf("%w: failed to hash password: %v", apperror.ErrInternal, err)
+		return "", fmt.Errorf("%w: failed to hash password: %v", apperror.ErrInternal, err.Error())
 	}
 	return string(hashedBytes), nil
 }

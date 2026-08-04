@@ -22,6 +22,6 @@ type SeatInfo struct {
 }
 
 type ReservationRequest struct {
-	GameID string     `json:"game_id"`
+	GameID uuid.UUID  `json:"game_id"`
 	Seats  []SeatInfo `json:"seats"`
 }

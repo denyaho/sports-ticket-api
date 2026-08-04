@@ -11,7 +11,11 @@ import (
 )
 
 type ReservationService interface {
-	CreateReservation(ctx context.Context, reqBody *domain.ReservationRequest, userID uuid.UUID) (*domain.Reservation, error)
+	CreateReservation(
+		ctx context.Context,
+		reqBody *domain.ReservationRequest,
+		userID uuid.UUID,
+	) (*domain.Reservation, error)
 	GetUserReservations(ctx context.Context, userID uuid.UUID) ([]*domain.Reservation, error)
 	GetReservationByID(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error)
 	PurchaseReservation(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error)
@@ -35,8 +39,11 @@ func (s *reservationService) CancelReservation(ctx context.Context, reservationI
 	return s.repo.CancelReservation(ctx, reservationID, userID)
 }
 
-func (s *reservationService) CreateReservation(ctx context.Context, reqBody *domain.ReservationRequest, userID uuid.UUID) (*domain.Reservation, error) {
-
+func (s *reservationService) CreateReservation(
+	ctx context.Context,
+	reqBody *domain.ReservationRequest,
+	userID uuid.UUID,
+) (*domain.Reservation, error) {
 	expiresAt := time.Now().Add(15 * time.Minute)
 
 	return s.repo.CreateReservation(ctx, reqBody, userID, expiresAt)
@@ -46,10 +53,16 @@ func (s *reservationService) GetUserReservations(ctx context.Context, userID uui
 	return s.repo.GetUserReservations(ctx, userID)
 }
 
-func (s *reservationService) GetReservationByID(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error) {
+func (s *reservationService) GetReservationByID(
+	ctx context.Context,
+	reservationID, userID uuid.UUID,
+) (*domain.Reservation, error) {
 	return s.repo.GetReservationByID(ctx, reservationID, userID)
 }
 
-func (s *reservationService) PurchaseReservation(ctx context.Context, reservationID, userID uuid.UUID) (*domain.Reservation, error) {
+func (s *reservationService) PurchaseReservation(
+	ctx context.Context,
+	reservationID, userID uuid.UUID,
+) (*domain.Reservation, error) {
 	return s.repo.PurchaseReservation(ctx, reservationID, userID)
 }

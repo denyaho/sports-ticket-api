@@ -51,9 +51,9 @@ func _getEnvBool(key string, defaultVal bool) bool {
 	return CookieSecure
 }
 
-func Load() (*Config, error) {
+func Load(logger *slog.Logger) (*Config, error) {
 	if err := godotenv.Load(); err != nil {
-		slog.Info("No .env file found, using environment variables")
+		logger.Info("No .env file found, using environment variables")
 	}
 	accessTokenTTL, err := strconv.Atoi(getEnv("ACCESSTTL", "15"))
 	if err != nil {
