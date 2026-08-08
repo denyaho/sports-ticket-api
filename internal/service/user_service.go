@@ -63,7 +63,7 @@ func (s *userService) AuthenticateUser(ctx context.Context, user *domain.User) (
 		return uuid.Nil, fmt.Errorf("authentication failed: %w", err)
 	}
 	if !CheckPassword(password, userinfo.Password) {
-		return uuid.Nil, apperror.ErrAuthenticationFailed
+		return uuid.Nil, apperror.ErrUnauthorized
 	}
 	return userinfo.ID, nil
 }

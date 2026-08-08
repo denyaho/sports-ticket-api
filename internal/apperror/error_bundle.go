@@ -14,5 +14,8 @@ var (
 	ErrDeadlineExceeded      = errors.New("deadline exceeded")
 	ErrDatabase              = errors.New("database error")
 	ErrInsufficientTickets = errors.New("insufficient tickets")
+	ErrUnauthorized = errors.New("unauthorized")
+	ErrInternal = errors.New("internal server error")
+	ErrBadRequest = errors.New("bad request")
 )
 

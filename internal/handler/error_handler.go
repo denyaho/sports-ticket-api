@@ -46,6 +46,12 @@ func toStatus(ctx context.Context, err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, apperror.ErrInsufficientTickets):
 		return http.StatusConflict
+	case errors.Is(err, apperror.ErrUnauthorized):
+		return http.StatusUnauthorized
+	case errors.Is(err, apperror.ErrInternal):
+		return http.StatusInternalServerError
+	case errors.Is(err, apperror.ErrBadRequest):
+		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
 	}
