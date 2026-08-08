@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"errors"
-
-	"42tokyo-road-to-dena-server/internal/apperror"
 	"42tokyo-road-to-dena-server/internal/domain"
 
 	"github.com/google/uuid"
@@ -40,7 +37,7 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 
 	rows, err := r.DB.QueryContext(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("execute query: trying to get all games: %w: %v", apperror.ErrDatabase, err.Error())
+		return nil, wrapDBError("execute query: trying to get all games", err)
 	}
 
 	defer func() {
@@ -56,12 +53,12 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 			&game.HomeTeam.ID, &game.HomeTeam.Name,
 			&game.AwayTeam.ID, &game.AwayTeam.Name)
 		if err != nil {
-			return nil, fmt.Errorf("execute scan rows %w: %v", apperror.ErrDatabase, err.Error())
+			return nil, wrapDBError("execute scan rows", err)
 		}
 		games = append(games, game)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating rows: %w: %v", apperror.ErrDatabase, err.Error())
+		return nil, wrapDBError("error iterating rows", err)
 	}
 	return games, nil
 }
@@ -80,12 +77,7 @@ func (r *postgreGamesRepository) GetGameByID(ctx context.Context, id uuid.UUID) 
 		&game.ID, &game.GameDate, &game.StartTime,
 		&game.HomeTeam.ID, &game.HomeTeam.Name,
 		&game.AwayTeam.ID, &game.AwayTeam.Name); err != nil {
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			return nil, fmt.Errorf("game %s not found: %w", id, apperror.ErrNotFound)
-		default:
-			return nil, fmt.Errorf("get game %s: %w: %v", id, apperror.ErrDatabase, err.Error())
-		}
+		return nil, wrapDBError(fmt.Sprintf("get game %s", id), err)
 	}
 	return &game, nil
 }

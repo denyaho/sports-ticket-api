@@ -11,10 +11,10 @@ import (
 
 func (h *Handler) HandleError(w http.ResponseWriter, r *http.Request, err error) {
 	SetErrorInRequestState(r.Context(), err)
-	h.respondError(w, toStatus(err))
+	h.respondError(w, toStatus(r.Context(), err))
 }
 
-func toStatus(err error) int {
+func toStatus(ctx context.Context, err error) int {
 	var maxErr *http.MaxBytesError
 	var syntaxErr *json.SyntaxError
 	var unmarshalTypeErr *json.UnmarshalTypeError
@@ -26,35 +26,26 @@ func toStatus(err error) int {
 	case errors.As(err, &unmarshalTypeErr):
 		return http.StatusBadRequest
 	case errors.Is(err, context.Canceled):
-		return http.StatusRequestTimeout // 408 Request Timeout
+		if ctx.Err() != nil {
+			return 499
+		}
+		return http.StatusInternalServerError
 	case errors.Is(err, context.DeadlineExceeded):
-		return http.StatusGatewayTimeout // 504 Gateway Timeout
+		return http.StatusGatewayTimeout
+	case errors.Is(err, apperror.ErrConflict):
+		return http.StatusConflict
+	case errors.Is(err, apperror.ErrValidation):
+		return http.StatusBadRequest
+	case errors.Is(err, apperror.ErrRetryable):
+		return http.StatusServiceUnavailable
+	case errors.Is(err, apperror.ErrTimeout):
+		return http.StatusGatewayTimeout
+	case errors.Is(err, apperror.ErrUnavailable):
+		return http.StatusServiceUnavailable
 	case errors.Is(err, apperror.ErrNotFound):
 		return http.StatusNotFound
 	case errors.Is(err, apperror.ErrInsufficientTickets):
-		return http.StatusConflict // 409 Conflict
-	case errors.Is(err, apperror.ErrUserNotFound):
-		return http.StatusNotFound
-	case errors.Is(err, apperror.ErrDatabase), errors.Is(err, apperror.ErrInternal):
-		return http.StatusInternalServerError
-	case errors.Is(err, apperror.ErrDuplicateEmail):
 		return http.StatusConflict
-	case errors.Is(err, apperror.ErrUnauthorized):
-		return http.StatusUnauthorized
-	case errors.Is(err, apperror.ErrReservationExpired):
-		return http.StatusGone // 410 Gone
-	case errors.Is(err, apperror.ErrReservationConflict):
-		return http.StatusConflict // 409 Conflict
-	case errors.Is(err, apperror.ErrReservationNotPending):
-		return http.StatusBadRequest // 400 Bad Request
-	case errors.Is(err, apperror.ErrBadRequest):
-		return http.StatusBadRequest // 400 Bad Request
-	case errors.Is(err, apperror.ErrInvalidInput):
-		return http.StatusBadRequest // 400 Bad Request
-	case errors.Is(err, apperror.ErrAuthenticationFailed):
-		return http.StatusUnauthorized // 401 Unauthorized
-	case errors.Is(err, apperror.ErrForbidden):
-		return http.StatusForbidden // 403 Forbidden
 	default:
 		return http.StatusInternalServerError
 	}

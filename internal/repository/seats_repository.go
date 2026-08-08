@@ -3,9 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
-	"42tokyo-road-to-dena-server/internal/apperror"
 	"42tokyo-road-to-dena-server/internal/domain"
 
 	"github.com/google/uuid"
@@ -40,7 +38,7 @@ func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID uu
 
 	rows, err := r.DB.QueryContext(ctx, query, gameID)
 	if err != nil {
-		return nil, fmt.Errorf("error querying seats by game ID: %w: %v", apperror.ErrDatabase, err.Error())
+		return nil, wrapDBError("execute query: trying to get seats by game ID", err)
 	}
 	defer func() {
 		_ = rows.Close()
@@ -50,12 +48,12 @@ func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID uu
 		var seat domain.Seat
 		err = rows.Scan(&seat.Grade, &seat.Price, &seat.Total, &seat.Available, &seat.Reserved, &seat.Sold)
 		if err != nil {
-			return nil, fmt.Errorf("error scanning seat: %w: %v", apperror.ErrDatabase, err.Error())
+			return nil, wrapDBError("scan row: trying to get seats by game ID", err)
 		}
 		seats = append(seats, seat)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating rows: %w: %v", apperror.ErrDatabase, err.Error())
+		return nil, wrapDBError("error iterating rows", err)
 	}
 	return seats, nil
 }
