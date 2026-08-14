@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,84 +18,79 @@ func TestHandleError(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name:           "Request Timeout",
-			fakeErr:        context.Canceled,
-			expectedStatus: http.StatusRequestTimeout,
+			name: 		 "Request Entity Too Large",
+			fakeErr: 	 &http.MaxBytesError{},
+			expectedStatus: http.StatusRequestEntityTooLarge,
 		},
 		{
-			name:           "Gateway Timeout",
+			name: 		 "Bad Request - Syntax Error",
+			fakeErr: 	 apperror.ErrBadRequest,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: 		 "Bad Request - Unmarshal Type Error",
+			fakeErr: 	 &json.UnmarshalTypeError{},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:           "Request Canceled",
+			fakeErr:        context.Canceled,
+			expectedStatus: 499,
+		},
+		{
+			name:           "Deadline Exceeded",
 			fakeErr:        context.DeadlineExceeded,
 			expectedStatus: http.StatusGatewayTimeout,
 		},
 		{
-			name:           "Not Found",
-			fakeErr:        apperror.ErrNotFound,
+			name:		   "Conflict",
+			fakeErr:	   apperror.ErrConflict,
+			expectedStatus: http.StatusConflict,
+		},
+		{
+			name:		   "Validation Error",
+			fakeErr:	   apperror.ErrValidation,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:		   "Retryable Error",
+			fakeErr:	   apperror.ErrRetryable,
+			expectedStatus: http.StatusServiceUnavailable,
+		},
+		{
+			name:		   "Timeout Error",
+			fakeErr:	   apperror.ErrTimeout,
+			expectedStatus: http.StatusGatewayTimeout,
+		},
+		{
+			name:		   "Unavailable Error",
+			fakeErr:	   apperror.ErrUnavailable,
+			expectedStatus: http.StatusServiceUnavailable,
+		},
+		{
+			name:		   "Not Found Error",
+			fakeErr:	   apperror.ErrNotFound,
 			expectedStatus: http.StatusNotFound,
 		},
 		{
-			name:           "Insufficient Tickets",
-			fakeErr:        apperror.ErrInsufficientTickets,
+			name:		   "Insufficient Tickets Error",
+			fakeErr:	   apperror.ErrInsufficientTickets,
 			expectedStatus: http.StatusConflict,
 		},
 		{
-			name:           "User Not Found",
-			fakeErr:        apperror.ErrUserNotFound,
-			expectedStatus: http.StatusNotFound,
-		},
-		{
-			name:           "Database Error",
-			fakeErr:        apperror.ErrDatabase,
-			expectedStatus: http.StatusInternalServerError,
-		},
-		{
-			name:           "Duplicate Email",
-			fakeErr:        apperror.ErrDuplicateEmail,
-			expectedStatus: http.StatusConflict,
-		},
-		{
-			name:           "Err internal",
-			fakeErr:        apperror.ErrInternal,
-			expectedStatus: http.StatusInternalServerError,
-		},
-		{
-			name:           "Unauthorized",
-			fakeErr:        apperror.ErrUnauthorized,
+			name:		   "Unauthorized Error",
+			fakeErr:	   apperror.ErrUnauthorized,
 			expectedStatus: http.StatusUnauthorized,
 		},
 		{
-			name:           "Reservation Expired",
-			fakeErr:        apperror.ErrReservationExpired,
-			expectedStatus: http.StatusGone,
+			name:		   "Internal Server Error",
+			fakeErr:	   apperror.ErrInternal,
+			expectedStatus: http.StatusInternalServerError,
 		},
 		{
-			name:           "Reservation Conflict",
-			fakeErr:        apperror.ErrReservationConflict,
-			expectedStatus: http.StatusConflict,
-		},
-		{
-			name:           "Reservation Not Pending",
-			fakeErr:        apperror.ErrReservationNotPending,
+			name:		   "Bad Request Error",
+			fakeErr:	   apperror.ErrBadRequest,
 			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:           "Bad Request",
-			fakeErr:        apperror.ErrBadRequest,
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:           "Invalid Input",
-			fakeErr:        apperror.ErrInvalidInput,
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:           "Authentication Failed",
-			fakeErr:        apperror.ErrAuthenticationFailed,
-			expectedStatus: http.StatusUnauthorized,
-		},
-		{
-			name:           "Forbidden",
-			fakeErr:        apperror.ErrForbidden,
-			expectedStatus: http.StatusForbidden,
 		},
 		{
 			name:           "Default Case",

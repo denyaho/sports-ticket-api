@@ -278,9 +278,6 @@ func (r *reservationRepository) GetReservationByID(
 	if reservation.ID == uuid.Nil {
 		return nil, apperror.ErrNotFound
 	}
-	if reservation.Status == "pending" && reservation.ExpiresAt.Before(time.Now()) {
-		reservation.Status = "expired"
-	}
 
 	return &reservation, nil
 }
@@ -353,10 +350,6 @@ func (r *reservationRepository) CreateReservation(
 	userID uuid.UUID,
 	expiresAt time.Time,
 ) (*domain.Reservation, error) {
-	if err := r.ExpiredReservations(ctx); err != nil {
-		return nil, fmt.Errorf("checking expired reservations: %w", err)
-	}
-
 	tx, err := r.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, wrapDBError("starting transaction: trying to create reservation", err)

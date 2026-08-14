@@ -15,15 +15,15 @@ type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 }
 
-type postgreUserRepository struct {
+type userRepository struct {
 	DB *sql.DB
 }
 
 func NewUserRepository(db *sql.DB) UserRepository {
-	return &postgreUserRepository{DB: db}
+	return &userRepository{DB: db}
 }
 
-func (r *postgreUserRepository) CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error) {
+func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) (uuid.UUID, error) {
 	query := "INSERT INTO users (id, username, email, password_hash) VALUES ($1, $2, $3, $4) RETURNING id"
 
 	var id uuid.UUID
@@ -34,7 +34,7 @@ func (r *postgreUserRepository) CreateUser(ctx context.Context, user *domain.Use
 	return id, nil
 }
 
-func (r *postgreUserRepository) FindUserByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
+func (r *userRepository) FindUserByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
 	query := "SELECT id, username, email, password_hash FROM users WHERE id = $1"
 
 	var user domain.User
@@ -45,7 +45,7 @@ func (r *postgreUserRepository) FindUserByID(ctx context.Context, id uuid.UUID) 
 	return &user, nil
 }
 
-func (r *postgreUserRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	query := `SELECT id, password_hash FROM users WHERE email = $1`
 
 	var user domain.User

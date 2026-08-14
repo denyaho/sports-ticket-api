@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -89,7 +88,7 @@ func run(logger *slog.Logger) error {
 	seatsService := service.NewSeatsService(seatsrepo)
 
 	reservationRepo := repository.NewReservationRepository(db)
-	reservationService := service.NewReservationService(reservationRepo)
+	reservationService := service.NewReservationService(reservationRepo, service.WithHoldTime(cfg.Reservation.ReservationExpiration), service.WithMaxSeats(cfg.Reservation.MaxSeats))
 
 	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, cfg.Database.Driver))
 	authbundle := authbundle.NewAuthBundle(authConfig, store)
@@ -115,7 +114,7 @@ func run(logger *slog.Logger) error {
 	// サーバーの起動（非同期）
 	errCh := make(chan error, 1)
 	go func() {
-		log.Printf("Starting server on %s", srv.Addr)
+		logger.Info("Starting server", "address", srv.Addr)
 		if errServ := srv.ListenAndServe(); errServ != nil && !errors.Is(errServ, http.ErrServerClosed) {
 			errCh <- fmt.Errorf("failed to start server: %w", errServ)
 		}
@@ -132,7 +131,7 @@ func run(logger *slog.Logger) error {
 			select {
 			case <-ticker.C:
 				if errRes := reservationService.ExpiredReservations(ctx); errRes != nil {
-					log.Printf("Error checking expired reservations: %v", errRes)
+					logger.Error("Error checking expired reservations", "error", errRes)
 				}
 			case <-ctx.Done():
 				return
@@ -158,6 +157,6 @@ func run(logger *slog.Logger) error {
 		return serveErr
 	default:
 	}
-	log.Println("Server exited")
+	logger.Info("Server exited")
 	return nil
 }

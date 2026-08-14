@@ -23,3 +23,21 @@ ss -tnlp
 切り分け: 宛先側レイヤ(L2/L3/L4/認証)を下から順に消去 → 送信元側に容疑を移す → bind設定なし → TIME_WAIT 25,393件でエフェメラルポート枯渇と断定。
 根因: Microsoft系サービスへのHTTPS短命接続の大量生成(プロセス特定は lsof で)。
 教訓: EADDRNOTAVAIL は文字通り「ローカルの address:port を割り当てられない」。宛先が健全なら送信元資源を疑う。
+
+
+トランザクション処理に関して
+
+レイヤードアーキテクチャでトランザクションを抽象化する
+https://karamaru-alpha.com/posts/layered-tx/
+
+Goとクリーンアーキテクチャとトランザクションと
+https://qiita.com/miya-masa/items/316256924a1f0d7374bb
+
+--------
+t.Parallelを用いた並列化
+関数内でのt.Parallel -> テスト関数自身の並列化
+他のTest*関数と並列で実行させる
+
+t.Run内でのサブテスト内でのt.Parallel
+同じ親テスト配下の他のサブテストと並列で実行してよい
+----------

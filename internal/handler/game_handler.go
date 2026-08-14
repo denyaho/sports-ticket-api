@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"42tokyo-road-to-dena-server/internal/apperror"
@@ -25,9 +24,6 @@ func (h *Handler) HandleGetGameByID(w http.ResponseWriter, r *http.Request) erro
 		return apperror.ErrBadRequest
 	}
 	game, err := h.gameService.GetGameByID(r.Context(), gameID)
-	if errors.Is(err, apperror.ErrNotFound) {
-		return apperror.ErrNotFound
-	}
 	if err != nil {
 		return err
 	}

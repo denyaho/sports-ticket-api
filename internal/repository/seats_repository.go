@@ -13,15 +13,15 @@ type SeatsRepository interface {
 	GetSeatsByGameID(ctx context.Context, gameID uuid.UUID) ([]domain.Seat, error)
 }
 
-type postgreSeatsRepository struct {
+type seatsRepository struct {
 	DB *sql.DB
 }
 
 func NewSeatsRepository(db *sql.DB) SeatsRepository {
-	return &postgreSeatsRepository{DB: db}
+	return &seatsRepository{DB: db}
 }
 
-func (r *postgreSeatsRepository) GetSeatsByGameID(ctx context.Context, gameID uuid.UUID) ([]domain.Seat, error) {
+func (r *seatsRepository) GetSeatsByGameID(ctx context.Context, gameID uuid.UUID) ([]domain.Seat, error) {
 	query := `SELECT 
 	seats.grade, seats.price,
 	COUNT(*) AS total_seats,

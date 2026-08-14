@@ -16,16 +16,16 @@ type GameRepository interface {
 	GetGameByID(ctx context.Context, id uuid.UUID) (*domain.Game, error)
 }
 
-type postgreGamesRepository struct {
+type gamesRepository struct {
 	DB     *sql.DB
 	logger *slog.Logger
 }
 
 func NewGameRepository(db *sql.DB, logger *slog.Logger) GameRepository {
-	return &postgreGamesRepository{DB: db, logger: logger}
+	return &gamesRepository{DB: db, logger: logger}
 }
 
-func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game, error) {
+func (r *gamesRepository) GetAllGames(ctx context.Context) ([]domain.Game, error) {
 	query := `SELECT g.id, g.game_date, g.start_time,
 	home.id AS home_team_id, home.name AS home_team_name,
 	away.id AS away_team_id, away.name AS away_team_name
@@ -63,7 +63,7 @@ func (r *postgreGamesRepository) GetAllGames(ctx context.Context) ([]domain.Game
 	return games, nil
 }
 
-func (r *postgreGamesRepository) GetGameByID(ctx context.Context, id uuid.UUID) (*domain.Game, error) {
+func (r *gamesRepository) GetGameByID(ctx context.Context, id uuid.UUID) (*domain.Game, error) {
 	query := `SELECT g.id, g.game_date, g.start_time,
 	home.id AS home_team_id, home.name AS home_team_name,
 	away.id AS away_team_id, away.name AS away_team_name

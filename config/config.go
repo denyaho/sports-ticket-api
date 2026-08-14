@@ -15,6 +15,7 @@ type Config struct {
 	Database DatabaseConfig
 	Auth     AuthConfigTmp
 	Env      string
+	Reservation ReservationConfig
 }
 
 type ServerConfig struct {
@@ -39,6 +40,11 @@ type AuthConfigTmp struct {
 	RefreshTokenTTL time.Duration
 	CookieDomain    string
 	CookieSecure    bool
+}
+
+type ReservationConfig struct {
+	ReservationExpiration time.Duration
+	MaxSeats              int
 }
 
 func _getEnvBool(key string, defaultVal bool) bool {
@@ -89,6 +95,10 @@ func Load(logger *slog.Logger) (*Config, error) {
 			CookieSecure:    _getEnvBool("COOKIE_SECURE", true),
 		},
 		Env: getEnv("ENV", "development"),
+		Reservation: ReservationConfig{
+			ReservationExpiration: time.Duration(getEnvInt("HOLDTIME", 15)) * time.Minute,
+			MaxSeats:              getEnvInt("MAXSEATS", 3),
+		},
 	}
 	switch {
 	case cfg.Database.User == "":
@@ -109,6 +119,15 @@ func Load(logger *slog.Logger) (*Config, error) {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
+		}
 	}
 	return defaultValue
 }
