@@ -30,7 +30,7 @@ func (h *Handler) HandleCancelReservation(w http.ResponseWriter, r *http.Request
 	if err != nil {
 		return err
 	}
-	h.respondJSON(w, nil, http.StatusNoContent)
+	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
 
@@ -50,11 +50,9 @@ func (h *Handler) HandleCreateReservation(w http.ResponseWriter, r *http.Request
 	}
 
 	reservationResponse, err := h.reservationService.CreateReservation(ctx, &reqBody, userID)
-
 	if err != nil {
 		return err
 	}
-
 	h.respondJSON(w, reservationResponse, http.StatusOK)
 	return nil
 }
