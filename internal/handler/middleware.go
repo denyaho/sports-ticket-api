@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
@@ -32,7 +31,7 @@ func (h *Handler) AuthRequired(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), authbundle.UserIDKey, claims.UserID)
+		ctx := authbundle.SetUserIDInContext(r.Context(), claims.UserID)
 
 		SetUserIDInRequestState(r.Context(), claims.UserID)
 

@@ -50,7 +50,7 @@ func (r *reservationRepository) ExpiredReservations(ctx context.Context) error {
 	}
 	_, err = result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("getting affected rows: %w", err)
+		return wrapDBError("getting affected rows: updating expired reservations", err)
 	}
 	return nil
 }

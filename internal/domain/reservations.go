@@ -27,7 +27,7 @@ type ReservationRequest struct {
 }
 
 var (
-	ReservationStatusReserved = "reserved"
+	ReservationStatusReserved  = "reserved"
 	ReservationStatusPurchased = "purchased"
 	ReservationStatusCanceled  = "canceled"
 	ReservationStatusExpired   = "expired"

@@ -2,11 +2,13 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 	"strings"
-	"encoding/json"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 
 	"42tokyo-road-to-dena-server/internal/apperror"
@@ -29,12 +31,12 @@ func (s *stubGameService) GetGameByID(ctx context.Context, id uuid.UUID) (*domai
 }
 
 var (
-	validID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	validID    = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	homeTeamID = uuid.MustParse("00000000-0000-0000-0000-0000000000a1")
 	awayTeamID = uuid.MustParse("00000000-0000-0000-0000-0000000000b1")
-	wantGame = &domain.Game{
-		ID: validID,
-		GameDate: "2024-06-01",
+	wantGame   = &domain.Game{
+		ID:        validID,
+		GameDate:  "2024-06-01",
 		StartTime: "18:00",
 		HomeTeam: domain.Team{
 			ID:   homeTeamID,
@@ -50,31 +52,29 @@ var (
 func TestGetAllGames(t *testing.T) {
 	t.Parallel()
 	getAllGamesTest := []struct {
-		name         string
-		games []domain.Game
-		wantBody []domain.Game
-		serviceErr      error
-		wantStatus  int
+		name       string
+		games      []domain.Game
+		wantBody   []domain.Game
+		serviceErr error
+		wantErr    error
+		wantStatus int
 	}{
 		{
-			name:         "success",
-			games: wantGame,
-			wantBody:    wantGame,
-			serviceErr:      nil,
-			wantStatus:  http.StatusOK,
+			name:       "success",
+			games:      []domain.Game{*wantGame},
+			wantBody:   []domain.Game{*wantGame},
+			wantStatus: http.StatusOK,
 		},
 		{
-			name: 	   "empty list",
-			games:    []domain.Game{},
-			wantBody: []domain.Game{},
-			serviceErr: 	nil,
-			wantStatus:  http.StatusOK,
+			name:       "empty list",
+			games:      []domain.Game{},
+			wantBody:   []domain.Game{},
+			wantStatus: http.StatusOK,
 		},
 		{
-			name:         "InternalServerError",
-			games:        nil,
-			serviceErr:      apperror.ErrDatabase,
-			wantStatus:  http.StatusInternalServerError,
+			name:       "InternalServerError",
+			serviceErr: apperror.ErrDatabase,
+			wantErr:    apperror.ErrDatabase,
 		},
 	}
 	for _, tt := range getAllGamesTest {
@@ -92,72 +92,75 @@ func TestGetAllGames(t *testing.T) {
 			}
 			request := httptest.NewRequestWithContext(context.Background(), "GET", "/api/games", nil)
 			response := httptest.NewRecorder()
-			h.toHandler(h.HandleGetAllGames)(response, request)
-
+			err := h.HandleGetAllGames(response, request)
+			//失敗系
+			if tt.wantErr != nil {
+				if !errors.Is(err, tt.wantErr) {
+					t.Errorf("error = %v, want %v", err, tt.wantErr)
+				}
+				return
+			}
+			//成功系
+			if err != nil {
+				t.Errorf("unexpected error = %v", err)
+			}
 			if response.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", response.Code, tt.wantStatus)
 			}
-			if tt.wantBody != nil {
-				if ct := response.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
-					t.Errorf("Content-Type = %s, want application/json", ct)
-				}
-				var got []domain.Game
-				if err := json.NewDecoder(response.Body).Decode(&got); err != nil {
-					t.Fatalf("decode body: %v", err)
-				}
-				if diff := cmp.Diff(tt.wantBody, got); diff != "" {
-					t.Errorf("response body mismatch (-want +got):\n%s", diff)
-				}
+			if ct := response.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
+				t.Errorf("Content-Type = %s, want application/json", ct)
+			}
+			var got []domain.Game
+			if err := json.NewDecoder(response.Body).Decode(&got); err != nil {
+				t.Fatalf("decode body: %v", err)
+			}
+			if diff := cmp.Diff(tt.wantBody, got); diff != "" {
+				t.Errorf("response body mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
-// テスト内容
-// 1. 正しいUUIDを渡した場合、ステータスコード200が返ること
-// 2. 不正なUUIDを渡した場合、ステータスコード400が返ること
-// 3. データベースエラーが発生した場合、ステータスコード500が返ること
-// 4. 該当するゲームがない場合、respond bodyにエラーが返ること
-// 5. 該当するゲームがない場合、ステータスコード404が返ること
 func TestGetGameByID(t *testing.T) {
 	t.Parallel()
-	
+
 	getGameByIDTest := []struct {
-		name         string
-		pathID	   string
-		game *domain.Game
+		name       string
+		pathID     string
+		game       *domain.Game
 		serviceErr error
+		wantErr    error
 		wantStatus int
 		wantCalled bool
-		wantBody *domain.Game
+		wantBody   *domain.Game
 	}{
 		{
-			name:         "success",
-			pathID: 	 validID.String(),
-			game:        wantGame,
-			wantStatus:  http.StatusOK,
-			wantCalled:  true,
-			wantBody:    wantGame,
+			name:       "success",
+			pathID:     validID.String(),
+			game:       wantGame,
+			wantStatus: http.StatusOK,
+			wantCalled: true,
+			wantBody:   wantGame,
 		},
 		{
-			name:         "invalid uuid returns 400 without calling service",
-			pathID:       "invalid-uuid",
-			wantStatus:  http.StatusBadRequest,
-			wantCalled:  false,
+			name:       "invalid uuid returns 400 without calling service",
+			pathID:     "invalid-uuid",
+			wantErr:    apperror.ErrBadRequest,
+			wantCalled: false,
 		},
 		{
-			name: "not found",
-			pathID: validID.String(),
+			name:       "not found",
+			pathID:     validID.String(),
 			serviceErr: apperror.ErrNotFound,
-			wantStatus: http.StatusNotFound,
+			wantErr:    apperror.ErrNotFound,
 			wantCalled: true,
 		},
 		{
-			name:         "database error",
-			pathID:       validID.String(),
-			serviceErr:   apperror.ErrDatabase,
-			wantStatus:   http.StatusInternalServerError,
-			wantCalled:   true,
+			name:       "database error",
+			pathID:     validID.String(),
+			serviceErr: apperror.ErrDatabase,
+			wantErr:    apperror.ErrDatabase,
+			wantCalled: true,
 		},
 	}
 	for _, tt := range getGameByIDTest {
@@ -166,7 +169,7 @@ func TestGetGameByID(t *testing.T) {
 
 			var (
 				called bool
-				gotID uuid.UUID
+				gotID  uuid.UUID
 			)
 			h := &Handler{
 				gameService: &stubGameService{
@@ -183,16 +186,35 @@ func TestGetGameByID(t *testing.T) {
 			req := httptest.NewRequestWithContext(context.Background(), "GET", "/api/games/"+tt.pathID, nil)
 			req.SetPathValue("id", tt.pathID)
 			response := httptest.NewRecorder()
+			err := h.HandleGetGameByID(response, req)
 
-			h.toHandler(h.HandleGetGameByID)(response, req)
+			//失敗系
+			if tt.wantErr != nil {
+				if !errors.Is(err, tt.wantErr) {
+					t.Errorf("error = %v, want %v", err, tt.wantErr)
+				}
+				if called != tt.wantCalled {
+					t.Errorf("service called = %v, want %v", called, tt.wantCalled)
+				}
+				wantID, _ := uuid.Parse(tt.pathID)
+				if tt.wantCalled && gotID != wantID {
+					t.Errorf("service called with id = %v, want %v", gotID, wantID)
+				}
+				return
+			}
+			//成功系
+			if err != nil {
+				t.Errorf("unexpected error = %v", err)
+			}
 			if response.Code != tt.wantStatus {
 				t.Errorf("status = %d, want %d", response.Code, tt.wantStatus)
 			}
-			if called != tt.wantCalled {
-				t.Errorf("service called = %v, want %v", called, tt.wantCalled)
+			if !called {
+				t.Errorf("expected service to be called, but it was not")
 			}
-			if tt.wantCalled && gotID != validID {
-				t.Errorf("service called with id = %v, want %v", gotID, validID)
+			wantID, _ := uuid.Parse(tt.pathID)
+			if tt.wantCalled && gotID != wantID {
+				t.Errorf("service called with id = %v, want %v", gotID, wantID)
 			}
 			if tt.wantBody != nil {
 				if ct := response.Header().Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {

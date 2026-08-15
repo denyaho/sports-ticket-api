@@ -60,21 +60,32 @@ func (m *StubreservationService) ExpiredReservations(ctx context.Context) error 
 	return m.FakeExpiredReservations(ctx)
 }
 
-func createContext() context.Context {
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, authbundle.UserIDKey, uuid.New())
+func createContext(userID uuid.UUID) context.Context {
+	ctx := authbundle.SetUserIDInContext(context.Background(), userID)
 	return ctx
 }
 
-func TestHandleCancelReservation(t *testing.T) {
-	var reservationID = "f7f7dad8-84fd-4c10-9f95-d2a68d38a46f"
+// テスト内容
+// 1. コンテキストにユーザーIDが含まれていない場合、ErrUnauthorizedが返されることを確認する。
+// 2. コンテキストにreservationIDが含まれていない場合、ErrBadRequestが返されることを確認する。
+// 3. StubreservationServiceのFakeCancelReservationが正しく呼び出されることを確認する。
+// 4. StubreservationServiceのFakeCancelReservationがエラーを返す場合、HandleCancelReservationがそのエラーを返すことを確認する。
+// 5. 成功した場合、StautsNoContentが返されることを確認する。
+var (
+	validUserID        = uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	validReservationID = uuid.MustParse("00000000-0000-0000-0000-000000000002")
+)
 
+func TestHandleCancelReservation(t *testing.T) {
 	cancelTests := []struct {
-		name           string
-		setupContext   func() context.Context
-		reservationID  string
-		fakeErr        error
-		expectedStatus int
+		name          string
+		ctx           context.Context
+		pathID        string
+		wantCall      bool
+		setupContext  func() context.Context
+		reservationID string
+		serviceErr    error
+		wantStatus    int
 	}{
 		{
 			name:           "success",

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"42tokyo-road-to-dena-server/internal/apperror"
@@ -21,7 +22,7 @@ func (h *Handler) HandleGetGameByID(w http.ResponseWriter, r *http.Request) erro
 	id := r.PathValue("id")
 	gameID, err := uuid.Parse(id)
 	if err != nil {
-		return apperror.ErrBadRequest
+		return fmt.Errorf("invalid UUID: %w", apperror.ErrBadRequest)
 	}
 	game, err := h.gameService.GetGameByID(r.Context(), gameID)
 	if err != nil {

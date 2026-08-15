@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
+	"42tokyo-road-to-dena-server/internal/apperror"
 	"42tokyo-road-to-dena-server/internal/domain"
 	"42tokyo-road-to-dena-server/internal/repository"
 	"fmt"
-	"42tokyo-road-to-dena-server/internal/apperror"
 
 	"github.com/google/uuid"
 )
@@ -26,13 +26,13 @@ type ReservationService interface {
 }
 
 type reservationService struct {
-	repo repository.ReservationRepository
-	clock domain.Clock
+	repo     repository.ReservationRepository
+	clock    domain.Clock
 	holdTime time.Duration
 	maxSeats int
 }
 
-type Option func(*reservationService) 
+type Option func(*reservationService)
 
 func WithClock(clock domain.Clock) Option {
 	return func(s *reservationService) {
@@ -56,8 +56,8 @@ func WithMaxSeats(maxSeats int) Option {
 
 func NewReservationService(repo repository.ReservationRepository, opts ...Option) ReservationService {
 	s := &reservationService{
-		repo: repo, 
-		clock: &domain.RealClock{},
+		repo:     repo,
+		clock:    &domain.RealClock{},
 		holdTime: 15 * time.Minute,
 		maxSeats: 10,
 	}
@@ -74,8 +74,6 @@ func (s *reservationService) ExpiredReservations(ctx context.Context) error {
 func (s *reservationService) CancelReservation(ctx context.Context, reservationID, userID uuid.UUID) error {
 	return s.repo.CancelReservation(ctx, reservationID, userID)
 }
-
-
 
 func (s *reservationService) CreateReservation(
 	ctx context.Context,

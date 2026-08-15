@@ -11,10 +11,10 @@ import (
 )
 
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Auth     AuthConfigTmp
-	Env      string
+	Server      ServerConfig
+	Database    DatabaseConfig
+	Auth        AuthConfigTmp
+	Env         string
 	Reservation ReservationConfig
 }
 

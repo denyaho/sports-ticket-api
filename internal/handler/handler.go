@@ -105,6 +105,6 @@ func (h *Handler) respondJSON(w http.ResponseWriter, data any, status int) {
 	}
 }
 
-func (h *Handler) respondError(w http.ResponseWriter, status int) {
+func (h *Handler) respondError(w http.ResponseWriter, status int, _ error) {
 	h.respondJSON(w, map[string]string{"error": http.StatusText(status)}, status)
 }

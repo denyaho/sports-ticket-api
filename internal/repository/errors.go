@@ -12,17 +12,30 @@ import (
 	"42tokyo-road-to-dena-server/internal/apperror"
 )
 
+const (
+	pqUniqueViolation        pq.ErrorCode = "23505"
+	pqForeignKeyViolation    pq.ErrorCode = "23503"
+	pqCheckViolation         pq.ErrorCode = "23514"
+	pqSerializationFailure   pq.ErrorCode = "40001"
+	pqDeadlockDetected       pq.ErrorCode = "40P01"
+	pqLockNotAvailable       pq.ErrorCode = "55P03"
+	pqQueryCanceled          pq.ErrorCode = "57014"
+	pqTooManyConnections     pq.ErrorCode = "53300"
+	pqConnectionFailure      pq.ErrorCode = "08006"
+	pqConnectionDoesNotExist pq.ErrorCode = "08003"
+)
+
 func classifyErrorOnRepository(code pq.ErrorCode) error {
 	switch code {
-	case "23505":
+	case pqUniqueViolation:
 		return apperror.ErrConflict
-	case "23503", "23514":
+	case pqForeignKeyViolation, pqCheckViolation:
 		return apperror.ErrValidation
-	case "40001", "40P01", "55P03":
+	case pqSerializationFailure, pqDeadlockDetected, pqLockNotAvailable:
 		return apperror.ErrRetryable
-	case "57014":
+	case pqQueryCanceled:
 		return apperror.ErrTimeout
-	case "53300", "08006", "08003":
+	case pqTooManyConnections, pqConnectionFailure, pqConnectionDoesNotExist:
 		return apperror.ErrUnavailable
 	}
 	return nil
@@ -38,7 +51,7 @@ func wrapDBError(statement string, err error) error {
 	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 		return fmt.Errorf("%s: %w", statement, err)
 	case errors.Is(err, sql.ErrConnDone), errors.Is(err, sql.ErrTxDone):
-		return fmt.Errorf("%s: %w", statement, apperror.ErrUnavailable)
+		return fmt.Errorf("%s: %w", statement, apperror.ErrDatabase)
 	case errors.Is(err, driver.ErrBadConn):
 		return fmt.Errorf("%s: %w", statement, apperror.ErrUnavailable)
 	}
