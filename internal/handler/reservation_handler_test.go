@@ -1,18 +1,18 @@
 package handler
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"errors"
-	"bytes"
-	"encoding/json"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
-	"io"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	"42tokyo-road-to-dena-server/authbundle"
 	"42tokyo-road-to-dena-server/internal/apperror"
@@ -67,71 +67,62 @@ func (m *StubreservationService) ExpiredReservations(ctx context.Context) error 
 	return m.FakeExpiredReservations(ctx)
 }
 
-// テスト内容
-// 1. コンテキストにユーザーIDが含まれていない場合、ErrUnauthorizedが返されることを確認する。
-// 2. コンテキストにreservationIDが含まれていない場合、ErrBadRequestが返されることを確認する。
-// 3. StubreservationServiceのFakeCancelReservationが正しく呼び出されることを確認する。
-// 4. StubreservationServiceのFakeCancelReservationがエラーを返す場合、HandleCancelReservationがそのエラーを返すことを確認する。
-// 5. 成功した場合、StautsNoContentが返されることを確認する。
-var (
-	validUserID        = uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	validReservationID = uuid.MustParse("00000000-0000-0000-0000-000000000002")
-)
-
 func TestHandleCancelReservation(t *testing.T) {
 	t.Parallel()
+	validUserID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	validReservationID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	cancelTests := []struct {
 		name          string
-		called      bool
-		wantErr	   error
+		called        bool
+		wantErr       error
 		reservationID string
-		userID		*uuid.UUID
+		userID        *uuid.UUID
 		serviceErr    error
 		wantStatus    int
 	}{
 		{
-			name: "success",
+			name:          "success",
 			reservationID: validReservationID.String(),
-			userID: &validUserID,
-			called: true,
-			wantStatus: http.StatusNoContent,
+			userID:        &validUserID,
+			called:        true,
+			wantStatus:    http.StatusNoContent,
 		},
 		{
-			name: "unAuthorized",
-			called: false,
+			name:    "unAuthorized",
+			called:  false,
 			wantErr: apperror.ErrUnauthorized,
 		},
 		{
-			name: "BadRequest",
+			name:          "BadRequest",
 			reservationID: "invalid-reservation-id",
-			userID: &validUserID,
-			called: false,
-			wantErr: apperror.ErrBadRequest,
+			userID:        &validUserID,
+			called:        false,
+			wantErr:       apperror.ErrBadRequest,
 		},
 		{
-			name: "notFound",
+			name:          "notFound",
 			reservationID: validReservationID.String(),
-			userID: &validUserID,
-			called: true,
-			serviceErr: apperror.ErrNotFound,
-			wantErr: apperror.ErrNotFound,
+			userID:        &validUserID,
+			called:        true,
+			serviceErr:    apperror.ErrNotFound,
+			wantErr:       apperror.ErrNotFound,
 		},
 		{
-			name: "internalServerError",
+			name:          "internalServerError",
 			reservationID: validReservationID.String(),
-			userID: &validUserID,
-			called: true,
-			serviceErr: apperror.ErrDatabase,
-			wantErr: apperror.ErrDatabase,
+			userID:        &validUserID,
+			called:        true,
+			serviceErr:    apperror.ErrDatabase,
+			wantErr:       apperror.ErrDatabase,
 		},
 	}
 	for _, tt := range cancelTests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			var (
-				called bool
+				called           bool
 				gotIDReservation uuid.UUID
-				gotIDUser uuid.UUID
+				gotIDUser        uuid.UUID
 			)
 			var ctx context.Context
 			if tt.userID != nil {
@@ -141,7 +132,7 @@ func TestHandleCancelReservation(t *testing.T) {
 			}
 			h := &Handler{
 				reservationService: &StubreservationService{
-					FakeCancelReservation: func(ctx context.Context, rID, uID uuid.UUID) error {
+					FakeCancelReservation: func(_ context.Context, rID, uID uuid.UUID) error {
 						called = true
 						gotIDReservation = rID
 						gotIDUser = uID
@@ -160,7 +151,7 @@ func TestHandleCancelReservation(t *testing.T) {
 			)
 			response := httptest.NewRecorder()
 			request.SetPathValue("id", tt.reservationID)
-			
+
 			err := h.HandleCancelReservation(response, request)
 
 			// 失敗系
@@ -190,7 +181,7 @@ func TestHandleCancelReservation(t *testing.T) {
 			if tt.called && gotIDReservation != wantIDReservation {
 				t.Errorf("service called with reservation id = %v, want %v", gotIDReservation, wantIDReservation)
 			}
-			if ct := response.Header().Get("Content-Type"); ct != ""{
+			if ct := response.Header().Get("Content-Type"); ct != "" {
 				t.Errorf("expected no Content-Type header, got %s", ct)
 			}
 			if diff := response.Body.Len(); diff != 0 {
@@ -200,90 +191,92 @@ func TestHandleCancelReservation(t *testing.T) {
 	}
 }
 
-var (
-	validGameID = uuid.MustParse("00000000-0000-0000-0000-000000000003")
-	validReqBody = domain.ReservationRequest{
+func newValidReqBody() *domain.ReservationRequest {
+	validGameID := uuid.MustParse("00000000-0000-0000-0000-000000000003")
+	return &domain.ReservationRequest{
 		GameID: validGameID,
-		Seats: []domain.SeatRequest{
+		Seats: []domain.SeatInfo{
 			{
-				SeatGrade: "A",
-				Quantity:  2,
+				Grade:    "A",
+				Quantity: 2,
 			},
 		},
 	}
-	validResponse = &domain.Reservation{
+}
+
+func newValidResponse() *domain.Reservation {
+	validGameID := uuid.MustParse("00000000-0000-0000-0000-000000000003")
+	return &domain.Reservation{
 		ID:        uuid.MustParse("00000000-0000-0000-0000-000000000004"),
 		GameID:    validGameID,
-		Status:   "pending",
-		Seats: []domain.SeatRequest{
-			{
-				SeatGrade: "A",
-				Quantity:  2,
-			},
-		},
+		Status:    "pending",
 		ExpiresAt: time.Now().Add(15 * time.Minute),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		Tickets: []domain.Tickets{
 			{
 				ID:        uuid.MustParse("00000000-0000-0000-0000-000000000005"),
-				SeatGrade: "A",
+				SeatID:    uuid.MustParse("00000000-0000-0000-0000-000000000006"),
+				Price:     1000,
+				Status:    "reserved",
 				CreatedAt: time.Now(),
 				UpdatedAt: time.Now(),
 			},
 		},
 	}
-)
+}
 
 func TestHandleCreateReservation(t *testing.T) {
 	t.Parallel()
+
+	validUserID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 	createTests := []struct {
-		name           string
-		called	  bool
-		userID		*uuid.UUID
-		reqBody        domain.ReservationRequest
-		rawBody		string
-		fakeErr        error
-		wantErr        error
-		wantStatus int
-		wantResponse  *domain.Reservation
+		name         string
+		called       bool
+		userID       *uuid.UUID
+		reqBody      *domain.ReservationRequest
+		rawBody      string
+		serviceErr   error
+		wantErr      error
+		wantStatus   int
+		wantResponse *domain.Reservation
 	}{
 		{
-			name:           "success",
-			userID: &validUserID,
-			called: true,
-			reqBody:        validReqBody,
-			fakeErr:        nil,
-			wantStatus: http.StatusOK,
-			wantResponse:  validResponse,
+			name:         "success",
+			userID:       &validUserID,
+			called:       true,
+			reqBody:      newValidReqBody(),
+			serviceErr:   nil,
+			wantStatus:   http.StatusOK,
+			wantResponse: newValidResponse(),
 		},
 		{
-			name:           "unauthorized",
-			called: false,
+			name:    "unauthorized",
+			called:  false,
 			wantErr: apperror.ErrUnauthorized,
 		},
 		{
-			name:		   "bad request",
-			userID: &validUserID,
+			name:    "bad request",
+			userID:  &validUserID,
 			rawBody: `{"not-json`,
-			called: false,
+			called:  false,
 			wantErr: apperror.ErrBadRequest,
 		},
 		{
-			name:           "internal server error",
-			userID: &validUserID,
-			reqBody:        validReqBody,
-			called: true,
-			fakeErr: apperror.ErrDatabase,
-			wantErr: apperror.ErrDatabase,
+			name:       "internal server error",
+			userID:     &validUserID,
+			reqBody:    newValidReqBody(),
+			called:     true,
+			serviceErr: apperror.ErrDatabase,
+			wantErr:    apperror.ErrDatabase,
 		},
 	}
 	for _, tt := range createTests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			var (
-				called bool
-				gotUserID uuid.UUID
+				called     bool
+				gotUserID  uuid.UUID
 				gotReqBody *domain.ReservationRequest
 			)
 			var ctx context.Context
@@ -298,10 +291,10 @@ func TestHandleCreateReservation(t *testing.T) {
 						called = true
 						gotReqBody = reqBody
 						gotUserID = id
-						if tt.fakeErr != nil {
-							return nil, tt.fakeErr
+						if tt.serviceErr != nil {
+							return nil, tt.serviceErr
 						}
-						return validResponse, nil
+						return tt.wantResponse, nil
 					},
 				},
 			}
@@ -348,8 +341,8 @@ func TestHandleCreateReservation(t *testing.T) {
 				t.Errorf("expected status %d, got %d", tt.wantStatus, response.Code)
 			}
 			if tt.called && gotUserID != *tt.userID {
-					t.Errorf("service called with user id = %v, want %v", gotUserID, tt.userID)
-				}
+				t.Errorf("service called with user id = %v, want %v", gotUserID, tt.userID)
+			}
 			if tt.called {
 				if diff := cmp.Diff(tt.reqBody, gotReqBody); diff != "" {
 					t.Errorf("service called with reqBody mismatch (-want +got):\n%s", diff)
@@ -358,12 +351,15 @@ func TestHandleCreateReservation(t *testing.T) {
 			if ct := response.Header().Get("Content-Type"); ct != "application/json" {
 				t.Errorf("expected Content-Type application/json, got %s", ct)
 			}
-			var gotResponse domain.Reservation
-			if err := json.NewDecoder(response.Body).Decode(&gotResponse); err != nil {
-				t.Fatalf("failed to decode response body: %v", err)
+			var gotResponse *domain.Reservation
+			if errDecode := json.NewDecoder(response.Body).Decode(&gotResponse); errDecode != nil {
+				t.Fatalf("failed to decode response body: %v", errDecode)
 			}
-			opts := cmpopts.IgnoreFields(domain.Reservation{}, "ExpiresAt", "CreatedAt", "UpdatedAt")
-			if diff := cmp.Diff(tt.wantResponse, gotResponse, opts); diff != "" {
+			opts := cmp.Options{
+				cmpopts.IgnoreFields(domain.Reservation{}, "ExpiresAt", "CreatedAt", "UpdatedAt"),
+				cmpopts.IgnoreFields(domain.Tickets{}, "CreatedAt", "UpdatedAt"),
+			}
+			if diff := cmp.Diff(tt.wantResponse, gotResponse, opts...); diff != "" {
 				t.Errorf("response body mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -372,40 +368,42 @@ func TestHandleCreateReservation(t *testing.T) {
 
 func TestHandleGetUserReservations(t *testing.T) {
 	t.Parallel()
+
+	validUserID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
 	getUserTests := []struct {
-		name           string
-		userID 	 *uuid.UUID
-		serviceErr        error
-		wantErr		error
-		wantStatus int
-		called bool
+		name             string
+		userID           *uuid.UUID
+		serviceErr       error
+		wantErr          error
+		wantStatus       int
+		call             bool
 		wantReservations []*domain.Reservation
 	}{
 		{
-			name:           "success",
-			userID: validUserID,
-			wantStatus: http.StatusOK,
-			called: true,
-			wantReservations: validResponse,
+			name:             "success",
+			userID:           &validUserID,
+			wantStatus:       http.StatusOK,
+			call:             true,
+			wantReservations: []*domain.Reservation{newValidResponse()},
 		},
 		{
-			name:           "unauthorized",
+			name:    "unauthorized",
 			wantErr: apperror.ErrUnauthorized,
-			called: false,
+			call:    false,
 		},
 		{
-			name:           "internal server error",
-			userID: validUserID,
-			serviceErr:        apperror.ErrDatabase,
-			wantErr: apperror.ErrDatabase,
-			called: true,
+			name:       "internal server error",
+			userID:     &validUserID,
+			serviceErr: apperror.ErrDatabase,
+			wantErr:    apperror.ErrDatabase,
+			call:       true,
 		},
 		{
-			name:           "not found",
-			userID: validUserID,
-			serviceErr:		apperror.ErrNotFound,
-			wantErr: apperror.ErrNotFound,
-			called: true,
+			name:       "not found",
+			userID:     &validUserID,
+			serviceErr: apperror.ErrNotFound,
+			wantErr:    apperror.ErrNotFound,
+			call:       true,
 		},
 	}
 	for _, tt := range getUserTests {
@@ -415,11 +413,11 @@ func TestHandleGetUserReservations(t *testing.T) {
 			var ctx context.Context
 			if tt.userID != nil {
 				ctx = authbundle.SetUserIDInContext(context.Background(), *tt.userID)
-			} else{
+			} else {
 				ctx = context.Background()
 			}
 			var (
-				called bool
+				called    bool
 				gotUserID uuid.UUID
 			)
 			h := &Handler{
@@ -444,8 +442,8 @@ func TestHandleGetUserReservations(t *testing.T) {
 				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("error = %v, want %v", err, tt.wantErr)
 				}
-				if called != tt.called {
-					t.Errorf("service called = %v, want %v", called, tt.called)
+				if called != tt.call {
+					t.Errorf("service called = %v, want %v", called, tt.call)
 				}
 				return
 			}
@@ -459,12 +457,12 @@ func TestHandleGetUserReservations(t *testing.T) {
 			if response.Code != tt.wantStatus {
 				t.Errorf("expected status %d, got %d", tt.wantStatus, response.Code)
 			}
-			if tt.called && gotUserID != *tt.userID {
-					t.Errorf("service called with user id = %v, want %v", gotUserID, *tt.userID)
-				}
+			if tt.call && gotUserID != *tt.userID {
+				t.Errorf("service called with user id = %v, want %v", gotUserID, *tt.userID)
+			}
 			var gotReservations []*domain.Reservation
-			if err := json.NewDecoder(response.Body).Decode(&gotReservations); err != nil {
-				t.Fatalf("failed to decode response body: %v", err)
+			if errDecode := json.NewDecoder(response.Body).Decode(&gotReservations); errDecode != nil {
+				t.Fatalf("failed to decode response body: %v", errDecode)
 			}
 			opts := cmpopts.IgnoreFields(domain.Reservation{}, "ExpiresAt", "CreatedAt", "UpdatedAt")
 			if diff := cmp.Diff(tt.wantReservations, gotReservations, opts); diff != "" {
@@ -476,54 +474,56 @@ func TestHandleGetUserReservations(t *testing.T) {
 
 func TestHandleGetReservationByID(t *testing.T) {
 	t.Parallel()
-	reservationID := "f7f7dad8-84fd-4c10-9f95-d2a68d38a46f"
+	validUserID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	validReservationID := uuid.MustParse("00000000-0000-0000-0000-000000000004")
+	validResponse := newValidResponse()
 	getReservationTests := []struct {
-		name           string
-		userID *uuid.UUID
-		called bool
-		reservationID  string
-		serviceErr        error
-		wantStatus int
-		wantErr error
-		wantResponse *domain.Reservation
+		name          string
+		userID        *uuid.UUID
+		call          bool
+		reservationID string
+		serviceErr    error
+		wantStatus    int
+		wantErr       error
+		wantResponse  *domain.Reservation
 	}{
 		{
-			name:           "success",
-			userID:         &validUserID,
-			reservationID:  validReservationID.String(),
-			wantStatus: http.StatusOK,
-			called: true,
-			wantResponse: validResponse,
+			name:          "success",
+			userID:        &validUserID,
+			reservationID: validReservationID.String(),
+			wantStatus:    http.StatusOK,
+			call:          true,
+			wantResponse:  validResponse,
 		},
 		{
-			name:           "unauthorized",
-			userID:         nil,
-			wantStatus: http.StatusUnauthorized,
-			called: false,
+			name:    "unauthorized",
+			userID:  nil,
+			wantErr: apperror.ErrUnauthorized,
+			call:    false,
 		},
 		{
-			name:           "internal server error",
-			userID:         &validUserID,
-			reservationID:  validReservationID.String(),
-			serviceErr:        apperror.ErrDatabase,
-			wantErr: apperror.ErrDatabase,
-			called: true,
+			name:          "internal server error",
+			userID:        &validUserID,
+			reservationID: validReservationID.String(),
+			serviceErr:    apperror.ErrDatabase,
+			wantErr:       apperror.ErrDatabase,
+			call:          true,
 		},
 		{
-			name:           "not found",
-			userID:         &validUserID,
-			reservationID:  validReservationID.String(),
-			serviceErr:        apperror.ErrNotFound,
-			wantErr: apperror.ErrNotFound,
-			called: true,
+			name:          "not found",
+			userID:        &validUserID,
+			reservationID: validReservationID.String(),
+			serviceErr:    apperror.ErrNotFound,
+			wantErr:       apperror.ErrNotFound,
+			call:          true,
 		},
 		{
-			name:           "bad request",
-			userID:         &validUserID,
-			reservationID:  "invalid-reservation-uuid",
-			serviceErr:        apperror.ErrBadRequest,
-			wantErr: apperror.ErrBadRequest,
-			called: false,
+			name:          "bad request",
+			userID:        &validUserID,
+			reservationID: "invalid-reservation-uuid",
+			serviceErr:    apperror.ErrBadRequest,
+			wantErr:       apperror.ErrBadRequest,
+			call:          false,
 		},
 	}
 	for _, tt := range getReservationTests {
@@ -536,8 +536,8 @@ func TestHandleGetReservationByID(t *testing.T) {
 				ctx = authbundle.SetUserIDInContext(context.Background(), *tt.userID)
 			}
 			var (
-				called bool
-				gotUserID uuid.UUID
+				called           bool
+				gotUserID        uuid.UUID
 				gotReservationID uuid.UUID
 			)
 			h := &Handler{
@@ -569,8 +569,8 @@ func TestHandleGetReservationByID(t *testing.T) {
 				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("error = %v, want %v", err, tt.wantErr)
 				}
-				if called != tt.called {
-					t.Errorf("service called = %v, want %v", called, tt.called)
+				if called != tt.call {
+					t.Errorf("service called = %v, want %v", called, tt.call)
 				}
 				return
 			}
@@ -581,19 +581,19 @@ func TestHandleGetReservationByID(t *testing.T) {
 			if !called {
 				t.Errorf("expected service to be called, but it was not")
 			}
+			if tt.call && gotUserID != *tt.userID {
+				t.Errorf("service called with user id = %v, want %v", gotUserID, *tt.userID)
+			}
+			wantReservationID, _ := uuid.Parse(tt.reservationID)
+			if tt.call && gotReservationID != wantReservationID {
+				t.Errorf("service called with reservation id = %v, want %v", gotReservationID, wantReservationID)
+			}
 			if response.Code != tt.wantStatus {
 				t.Errorf("expected status %d, got %d", tt.wantStatus, response.Code)
 			}
-			if tt.called && gotUserID != *tt.userID {
-					t.Errorf("service called with user id = %v, want %v", gotUserID, *tt.userID)
-				}
-			wantReservationID, _ := uuid.Parse(tt.reservationID)
-			if tt.called && gotReservationID != wantReservationID {
-				t.Errorf("service called with reservation id = %v, want %v", gotReservationID, wantReservationID)
-			}
 			var gotResponse domain.Reservation
-			if err := json.NewDecoder(response.Body).Decode(&gotResponse); err != nil {
-				t.Fatalf("failed to decode response body: %v", err)
+			if errDecode := json.NewDecoder(response.Body).Decode(&gotResponse); errDecode != nil {
+				t.Fatalf("failed to decode response body: %v", errDecode)
 			}
 			opts := cmpopts.IgnoreFields(domain.Reservation{}, "ExpiresAt", "CreatedAt", "UpdatedAt")
 			if diff := cmp.Diff(tt.wantResponse, &gotResponse, opts); diff != "" {
@@ -605,52 +605,55 @@ func TestHandleGetReservationByID(t *testing.T) {
 
 func TestHandlePurchaseReservation(t *testing.T) {
 	t.Parallel()
+	validUserID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	validReservationID := uuid.MustParse("00000000-0000-0000-0000-000000000004")
+	validResponse := newValidResponse()
 	purchageTests := []struct {
-		name           string
-		userID *uuid.UUID
-		called bool
-		reservationID  string
-		serviceErr        error
-		wantStatus int
-		wantResponse *domain.Reservation
-		wantErr error
+		name          string
+		userID        *uuid.UUID
+		call          bool
+		reservationID string
+		serviceErr    error
+		wantStatus    int
+		wantResponse  *domain.Reservation
+		wantErr       error
 	}{
 		{
-			name:           "success",
-			userID: 	   &validUserID,
-			reservationID:  validReservationID.String(),
-			wantStatus: http.StatusOK,
-			wantResponse: validResponse,
-			called: true,
+			name:          "success",
+			userID:        &validUserID,
+			reservationID: validReservationID.String(),
+			wantStatus:    http.StatusOK,
+			wantResponse:  validResponse,
+			call:          true,
 		},
 		{
-			name:           "unauthorized",
+			name:    "unauthorized",
 			wantErr: apperror.ErrUnauthorized,
-			called: false,
+			call:    false,
 		},
 		{
-			name:           "internal server error",
-			userID: 	   &validUserID,
-			reservationID:  validReservationID.String(),
-			serviceErr:        apperror.ErrDatabase,
-			wantStatus: http.StatusInternalServerError,
-			called: true,
+			name:          "internal server error",
+			userID:        &validUserID,
+			reservationID: validReservationID.String(),
+			serviceErr:    apperror.ErrDatabase,
+			wantErr:       apperror.ErrDatabase,
+			call:          true,
 		},
 		{
-			name:           "not found",
-			userID: 	   &validUserID,
-			reservationID:  validReservationID.String(),
-			serviceErr:        apperror.ErrNotFound,
-			wantStatus: http.StatusNotFound,
-			called: true,
+			name:          "not found",
+			userID:        &validUserID,
+			reservationID: validReservationID.String(),
+			serviceErr:    apperror.ErrNotFound,
+			wantErr:       apperror.ErrNotFound,
+			call:          true,
 		},
 		{
-			name:           "bad request",
-			userID: 	   &validUserID,
-			reservationID:  "invalid-reservation-uuid",
-			serviceErr:        apperror.ErrBadRequest,
-			wantErr: apperror.ErrBadRequest,
-			called: false,
+			name:          "bad request",
+			userID:        &validUserID,
+			reservationID: "invalid-reservation-uuid",
+			serviceErr:    apperror.ErrBadRequest,
+			wantErr:       apperror.ErrBadRequest,
+			call:          false,
 		},
 	}
 	for _, tt := range purchageTests {
@@ -665,8 +668,8 @@ func TestHandlePurchaseReservation(t *testing.T) {
 			}
 
 			var (
-				called bool
-				gotUserID uuid.UUID
+				called           bool
+				gotUserID        uuid.UUID
 				gotReservationID uuid.UUID
 			)
 			h := &Handler{
@@ -698,8 +701,8 @@ func TestHandlePurchaseReservation(t *testing.T) {
 				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("error = %v, want %v", err, tt.wantErr)
 				}
-				if called != tt.called {
-					t.Errorf("service called = %v, want %v", called, tt.called)
+				if called != tt.call {
+					t.Errorf("service called = %v, want %v", called, tt.call)
 				}
 				return
 			}
@@ -713,16 +716,16 @@ func TestHandlePurchaseReservation(t *testing.T) {
 			if response.Code != tt.wantStatus {
 				t.Errorf("expected status %d, got %d", tt.wantStatus, response.Code)
 			}
-			if tt.called && gotUserID != *tt.userID {
-					t.Errorf("service called with user id = %v, want %v", gotUserID, *tt.userID)
-				}
+			if tt.call && gotUserID != *tt.userID {
+				t.Errorf("service called with user id = %v, want %v", gotUserID, *tt.userID)
+			}
 			wantReservationID, _ := uuid.Parse(tt.reservationID)
-			if tt.called && gotReservationID != wantReservationID {
+			if tt.call && gotReservationID != wantReservationID {
 				t.Errorf("service called with reservation id = %v, want %v", gotReservationID, wantReservationID)
 			}
 			var gotResponse domain.Reservation
-			if err := json.NewDecoder(response.Body).Decode(&gotResponse); err != nil {
-				t.Fatalf("failed to decode response body: %v", err)
+			if errDecode := json.NewDecoder(response.Body).Decode(&gotResponse); errDecode != nil {
+				t.Fatalf("failed to decode response body: %v", errDecode)
 			}
 			opts := cmpopts.IgnoreFields(domain.Reservation{}, "ExpiresAt", "CreatedAt", "UpdatedAt")
 			if diff := cmp.Diff(tt.wantResponse, &gotResponse, opts); diff != "" {

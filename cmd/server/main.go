@@ -88,7 +88,11 @@ func run(logger *slog.Logger) error {
 	seatsService := service.NewSeatsService(seatsrepo)
 
 	reservationRepo := repository.NewReservationRepository(db)
-	reservationService := service.NewReservationService(reservationRepo, service.WithHoldTime(cfg.Reservation.ReservationExpiration), service.WithMaxSeats(cfg.Reservation.MaxSeats))
+	reservationService := service.NewReservationService(
+		reservationRepo,
+		service.WithHoldTime(cfg.Reservation.ReservationExpiration),
+		service.WithMaxSeats(cfg.Reservation.MaxSeats),
+	)
 
 	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, cfg.Database.Driver))
 	authbundle := authbundle.NewAuthBundle(authConfig, store)

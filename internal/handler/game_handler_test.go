@@ -30,24 +30,21 @@ func (s *stubGameService) GetGameByID(ctx context.Context, id uuid.UUID) (*domai
 	return s.GetGameByIDFunc(ctx, id)
 }
 
-var (
-	validID    = uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	homeTeamID = uuid.MustParse("00000000-0000-0000-0000-0000000000a1")
-	awayTeamID = uuid.MustParse("00000000-0000-0000-0000-0000000000b1")
-	wantGame   = &domain.Game{
-		ID:        validID,
+func newWantGame() *domain.Game {
+	return &domain.Game{
+		ID:        uuid.MustParse("00000000-0000-0000-0000-000000000001"),
 		GameDate:  "2024-06-01",
 		StartTime: "18:00",
 		HomeTeam: domain.Team{
-			ID:   homeTeamID,
+			ID:   uuid.MustParse("00000000-0000-0000-0000-0000000000a1"),
 			Name: "Home Team",
 		},
 		AwayTeam: domain.Team{
-			ID:   awayTeamID,
+			ID:   uuid.MustParse("00000000-0000-0000-0000-0000000000b1"),
 			Name: "Away Team",
 		},
 	}
-)
+}
 
 func TestGetAllGames(t *testing.T) {
 	t.Parallel()
@@ -61,8 +58,8 @@ func TestGetAllGames(t *testing.T) {
 	}{
 		{
 			name:       "success",
-			games:      []domain.Game{*wantGame},
-			wantBody:   []domain.Game{*wantGame},
+			games:      []domain.Game{*newWantGame()},
+			wantBody:   []domain.Game{*newWantGame()},
 			wantStatus: http.StatusOK,
 		},
 		{
@@ -93,14 +90,14 @@ func TestGetAllGames(t *testing.T) {
 			request := httptest.NewRequestWithContext(context.Background(), "GET", "/api/games", nil)
 			response := httptest.NewRecorder()
 			err := h.HandleGetAllGames(response, request)
-			//失敗系
+			// 失敗系
 			if tt.wantErr != nil {
 				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("error = %v, want %v", err, tt.wantErr)
 				}
 				return
 			}
-			//成功系
+			// 成功系
 			if err != nil {
 				t.Errorf("unexpected error = %v", err)
 			}
@@ -111,8 +108,8 @@ func TestGetAllGames(t *testing.T) {
 				t.Errorf("Content-Type = %s, want application/json", ct)
 			}
 			var got []domain.Game
-			if err := json.NewDecoder(response.Body).Decode(&got); err != nil {
-				t.Fatalf("decode body: %v", err)
+			if errDecode := json.NewDecoder(response.Body).Decode(&got); errDecode != nil {
+				t.Fatalf("decode body: %v", errDecode)
 			}
 			if diff := cmp.Diff(tt.wantBody, got); diff != "" {
 				t.Errorf("response body mismatch (-want +got):\n%s", diff)
@@ -123,6 +120,8 @@ func TestGetAllGames(t *testing.T) {
 
 func TestGetGameByID(t *testing.T) {
 	t.Parallel()
+
+	validID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 
 	getGameByIDTest := []struct {
 		name       string
@@ -137,10 +136,10 @@ func TestGetGameByID(t *testing.T) {
 		{
 			name:       "success",
 			pathID:     validID.String(),
-			game:       wantGame,
+			game:       newWantGame(),
 			wantStatus: http.StatusOK,
 			wantCalled: true,
-			wantBody:   wantGame,
+			wantBody:   newWantGame(),
 		},
 		{
 			name:       "invalid uuid returns 400 without calling service",
@@ -188,7 +187,7 @@ func TestGetGameByID(t *testing.T) {
 			response := httptest.NewRecorder()
 			err := h.HandleGetGameByID(response, req)
 
-			//失敗系
+			// 失敗系
 			if tt.wantErr != nil {
 				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("error = %v, want %v", err, tt.wantErr)
@@ -202,7 +201,7 @@ func TestGetGameByID(t *testing.T) {
 				}
 				return
 			}
-			//成功系
+			// 成功系
 			if err != nil {
 				t.Errorf("unexpected error = %v", err)
 			}
@@ -221,8 +220,8 @@ func TestGetGameByID(t *testing.T) {
 					t.Errorf("Content-Type = %s, want application/json", ct)
 				}
 				var got domain.Game
-				if err := json.NewDecoder(response.Body).Decode(&got); err != nil {
-					t.Fatalf("decode body: %v", err)
+				if errDecode := json.NewDecoder(response.Body).Decode(&got); errDecode != nil {
+					t.Fatalf("decode body: %v", errDecode)
 				}
 				if diff := cmp.Diff(*tt.wantBody, got); diff != "" {
 					t.Errorf("response body mismatch (-want +got):\n%s", diff)

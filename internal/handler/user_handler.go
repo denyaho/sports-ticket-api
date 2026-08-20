@@ -60,7 +60,7 @@ func (h *Handler) HandleGetUser(w http.ResponseWriter, r *http.Request) error {
 		return apperror.ErrUnauthorized
 	}
 
-	userInfo, err := h.userservice.FindUserByID(r.Context(), userID)
+	userInfo, err := h.userService.FindUserByID(r.Context(), userID)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) error 
 		Email:    reqBody.Email,
 		Password: reqBody.Password,
 	}
-	id, err := h.userservice.AuthenticateUser(ctx, userInfo)
+	id, err := h.userService.AuthenticateUser(ctx, userInfo)
 	if err != nil {
 		return err
 	}
@@ -130,12 +130,12 @@ func (h *Handler) HandleUserSignup(w http.ResponseWriter, r *http.Request) error
 		return errors.Join(apperror.ErrBadRequest, err)
 	}
 
-	userinfo := &domain.User{
+	userInfo := &domain.User{
 		Username: reqBody.Name,
 		Email:    reqBody.Email,
 		Password: reqBody.Password,
 	}
-	id, err := h.userservice.CreateUser(ctx, userinfo)
+	id, err := h.userService.CreateUser(ctx, userInfo)
 	if err != nil {
 		return err
 	}

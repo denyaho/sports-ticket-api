@@ -2,9 +2,13 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	"42tokyo-road-to-dena-server/internal/apperror"
 	"42tokyo-road-to-dena-server/internal/domain"
@@ -20,47 +24,50 @@ func (s *StubseatsService) GetSeatsByGameID(ctx context.Context, gameID uuid.UUI
 	return s.FakeGetSeatsByGameID(ctx, gameID)
 }
 
-var (
-	validGameID = "00000000-0000-0000-0000-000000000001"
-	validSeats = []domain.Seat{
+func newValidSeats() []domain.Seat {
+	return []domain.Seat{
 		{
-			Grade:  "A",
-			Price:  1000,
-			Total:  100,
+			Grade:     "A",
+			Price:     1000,
+			Total:     100,
 			Available: 100,
-			Reserved: 0,
-			Sold: 0,
+			Reserved:  0,
+			Sold:      0,
 		},
 	}
-)
+}
 
 func TestGetSeatsByGameID(t *testing.T) {
 	t.Parallel()
+
+	validGameID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	seatsTests := []struct {
-		name         string
-		wantGame string		
-		serviceErr      error
-		wantErr	error
+		name       string
+		wantGame   string
+		serviceErr error
+		wantErr    error
 		wantStatus int
-		wantBody []domain.Seat
-		called bool
+		wantBody   []domain.Seat
+		call       bool
 	}{
 		{
-			name:         "success",
-			wantGame: validGameID,
-			wantStatus:  http.StatusOK,
-			wantBody:    validSeats,
+			name:       "success",
+			wantGame:   validGameID.String(),
+			wantStatus: http.StatusOK,
+			wantBody:   newValidSeats(),
+			call:       true,
 		},
 		{
-			name:         "InternalServerError",
-			wantGame: validGameID,
-			serviceErr:      apperror.ErrDatabase,
-			wantErr:  apperror.ErrInternalServer,
+			name:       "InternalServerError",
+			wantGame:   validGameID.String(),
+			serviceErr: apperror.ErrInternal,
+			wantErr:    apperror.ErrInternal,
+			call:       true,
 		},
 		{
-			name:         "BadRequest",
-			wantGame:       "invalid-uuid",
-			wantErr:	 apperror.ErrBadRequest,
+			name:     "BadRequest",
+			wantGame: "invalid-uuid",
+			wantErr:  apperror.ErrBadRequest,
 		},
 	}
 	for _, tt := range seatsTests {
@@ -78,7 +85,12 @@ func TestGetSeatsByGameID(t *testing.T) {
 					},
 				},
 			}
-			request := httptest.NewRequestWithContext(context.Background(), "GET", "/api/games/"+tt.wantGame+"/seats", nil)
+			request := httptest.NewRequestWithContext(
+				context.Background(),
+				"GET",
+				"/api/games/"+tt.wantGame+"/seats",
+				nil,
+			)
 			request.SetPathValue("id", tt.wantGame)
 			response := httptest.NewRecorder()
 
@@ -89,8 +101,8 @@ func TestGetSeatsByGameID(t *testing.T) {
 				if !errors.Is(err, tt.wantErr) {
 					t.Errorf("error = %v, want %v", err, tt.wantErr)
 				}
-				if called != tt.called {
-					t.Errorf("service called = %v, want %v", called, tt.called)
+				if called != tt.call {
+					t.Errorf("service called = %v, want %v", called, tt.call)
 				}
 				return
 			}
@@ -104,14 +116,14 @@ func TestGetSeatsByGameID(t *testing.T) {
 			if !called {
 				t.Errorf("service was not called")
 			}
-			if tt.called {
+			if tt.call {
 				var gotSeats []domain.Seat
-				if err := json.NewDecoder(response.Body).Decode(&gotSeats); err != nil {
-					t.Fatalf("failed to decode response body: %v", err)
+				if errDecode := json.NewDecoder(response.Body).Decode(&gotSeats); errDecode != nil {
+					t.Fatalf("failed to decode response body: %v", errDecode)
 				}
 				if diff := cmp.Diff(tt.wantBody, gotSeats); diff != "" {
 					t.Errorf("response body mismatch (-want +got):\n%s", diff)
-				}	
+				}
 			}
 		})
 	}

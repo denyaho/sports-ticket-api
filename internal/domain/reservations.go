@@ -26,7 +26,7 @@ type ReservationRequest struct {
 	Seats  []SeatInfo `json:"seats"`
 }
 
-var (
+const (
 	ReservationStatusReserved  = "reserved"
 	ReservationStatusPurchased = "purchased"
 	ReservationStatusCanceled  = "canceled"

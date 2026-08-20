@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -10,11 +11,21 @@ import (
 
 	"42tokyo-road-to-dena-server/authbundle"
 	"42tokyo-road-to-dena-server/internal/service"
+
+	"github.com/google/uuid"
 )
 
-func New(authbundle *authbundle.AuthBundle,
+type AuthBundleService interface {
+	GenerateAccessToken(userID uuid.UUID) (string, error)
+	GenerateRefreshToken(ctx context.Context, userID uuid.UUID) (string, error)
+	ValidateRefreshToken(ctx context.Context, token string) (*authbundle.RefreshToken, error)
+	ValidateAccessToken(token string) (*authbundle.AuthClaims, error)
+	RotateRefreshToken(ctx context.Context, oldToken string) (string, error)
+}
+
+func New(authbundle AuthBundleService,
 	authConfig *authbundle.AuthConfig,
-	userservice service.UserService,
+	userService service.UserService,
 	gameService service.GameService,
 	seatsService service.SeatsService,
 	reservationService service.ReservationService,
@@ -22,7 +33,7 @@ func New(authbundle *authbundle.AuthBundle,
 	return &Handler{
 		authBundleService:  authbundle,
 		authConfig:         authConfig,
-		userservice:        userservice,
+		userService:        userService,
 		gameService:        gameService,
 		seatsService:       seatsService,
 		reservationService: reservationService,
@@ -31,9 +42,9 @@ func New(authbundle *authbundle.AuthBundle,
 }
 
 type Handler struct {
-	authBundleService  *authbundle.AuthBundle
+	authBundleService  AuthBundleService
 	authConfig         *authbundle.AuthConfig
-	userservice        service.UserService
+	userService        service.UserService
 	gameService        service.GameService
 	seatsService       service.SeatsService
 	reservationService service.ReservationService
