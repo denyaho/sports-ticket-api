@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"sync"
 
 	"42tokyo-road-to-dena-server/authbundle"
 	"42tokyo-road-to-dena-server/config"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func main() {
@@ -77,6 +79,8 @@ func run(logger *slog.Logger) error {
 		CookieDomain: cfg.Auth.CookieDomain,
 		CookieSecure: cfg.Auth.CookieSecure,
 	}
+
+
 	// ハンドラーの初期化
 	userrepo := repository.NewUserRepository(db)
 	userservice := service.NewUserService(userrepo)
@@ -126,9 +130,21 @@ func run(logger *slog.Logger) error {
 
 	// シグナルハンドリング
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) // 監視すべきシグナルを列挙する
-
 	defer stop()
+
+	otelShutdown, err := setupOtelSDK(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		err = errors.Join(err, otelShutdown(context.Background()))
+	}()
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
 		for {
@@ -147,7 +163,6 @@ func run(logger *slog.Logger) error {
 		return err
 	case <-ctx.Done():
 		logger.Info("Shutting down server...")
-		stop()
 	}
 	// グレースフルシャットダウン
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -161,6 +176,7 @@ func run(logger *slog.Logger) error {
 		return serveErr
 	default:
 	}
+	wg.Wait()
 	logger.Info("Server exited")
 	return nil
 }
