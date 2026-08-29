@@ -41,3 +41,9 @@ t.Parallelを用いた並列化
 t.Run内でのサブテスト内でのt.Parallel
 同じ親テスト配下の他のサブテストと並列で実行してよい
 ----------
+
+opentelemetryについて
+
+https://zenn.dev/sumiren/articles/4d88f8ce4e875c
+
+https://blog.cybozu.io/entry/2023/04/12/170000

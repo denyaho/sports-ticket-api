@@ -14,6 +14,13 @@ import (
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
+
+	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
+	"go.opentelemetry.io/otel/sdk/resource"
+)
+
+var (
+	serviceName = "sports_ticket_app"
 )
 
 func setupOtelSDK(ctx context.Context) (func(context.Context) error, error) {
@@ -33,10 +40,15 @@ func setupOtelSDK(ctx context.Context) (func(context.Context) error, error) {
 		err = errors.Join(inErr, shutdown(ctx))	
 	}
 
+	res := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceName(serviceName),
+	)
+
 	prop := newPropagator()
 	otel.SetTextMapPropagator(prop)
 
-	traceProvider, err := newTraceProvider()
+	traceProvider, err := newTraceProvider(res)
 	if err != nil {
 		handleErr(err)
 		return nil, err
@@ -44,6 +56,14 @@ func setupOtelSDK(ctx context.Context) (func(context.Context) error, error) {
 
 	shutdownFuncs = append(shutdownFuncs, traceProvider.Shutdown)
 	otel.SetTracerProvider(traceProvider)
+
+	meterProvider, err := newMeterProvider(res)
+	if err != nil {
+		handleErr(err)
+		return nil, err
+	}
+	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
+	otel.SetMeterProvider(meterProvider)
 
 	loggerProvider, err := newLoggerProvider()
 	if err != nil {
@@ -63,18 +83,19 @@ func newPropagator() propagation.TextMapPropagator {
 	)
 }
 
-func newTraceProvider() (*trace.TracerProvider, error){
+func newTraceProvider(res *resource.Resource) (*trace.TracerProvider, error){
 	traceExporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
 	if err != nil {
 		return nil, err
 	}
 	traceProvider := trace.NewTracerProvider(
 		trace.WithBatcher(traceExporter),
+		trace.WithResource(res),
 	)
 	return traceProvider, nil
 }
 
-func newMeterProvider() (*metric.MeterProvider, error) {
+func newMeterProvider(res *resource.Resource) (*metric.MeterProvider, error) {
 	metricExporter, err := stdoutmetric.New(stdoutmetric.WithPrettyPrint())
 	if err != nil {
 		return nil, err
@@ -82,6 +103,7 @@ func newMeterProvider() (*metric.MeterProvider, error) {
 
 	meterProvider := metric.NewMeterProvider(
 		metric.WithReader(metric.NewPeriodicReader(metricExporter, metric.WithInterval(10*time.Second))),
+		metric.WithResource(res),
 	)
 	return meterProvider, nil
 }

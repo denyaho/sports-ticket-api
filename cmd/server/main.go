@@ -21,7 +21,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"github.com/XSAM/otelsql"
+	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 )
 
 func main() {
@@ -33,7 +34,7 @@ func main() {
 	logger.Info("Server exited gracefully")
 }
 
-func setupDatabase(cfg *config.Config) (*sql.DB, error) {
+func setupDatabase(cfg *config.Config) (*sql.DB, func() error, error) {
 	dbDriver := cfg.Database.Driver
 	dBcfg := cfg.Database
 	dsn := fmt.Sprintf(
@@ -45,31 +46,41 @@ func setupDatabase(cfg *config.Config) (*sql.DB, error) {
 		dBcfg.Name,
 	)
 
-	db, err := sql.Open(dbDriver, dsn)
+	db, err := otelsql.Open(dbDriver, dsn, otelsql.WithAttributes(semconv.DBSystemPostgreSQL))
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	reg, err := otelsql.RegisterDBStatsMetrics(db, otelsql.WithAttributes(semconv.DBSystemPostgreSQL))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to register DB stats metrics: %w", err)
+	}
+
+	cleanUp := func() error {
+		return errors.Join(db.Close(), reg.Unregister())
 	}
 
 	pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err = db.PingContext(pingCtx); err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		return nil, cleanUp, fmt.Errorf("failed to connect to database: %w", err)
 	}
-	return db, nil
+	return db, cleanUp, nil
 }
 
-func run(logger *slog.Logger) error {
+func run(logger *slog.Logger) (err error) {
 	// 設定の読み込み
 	cfg, err := config.Load(logger)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 	// DB接続の初期化
-	db, err := setupDatabase(cfg)
+	db, cleanUp, err := setupDatabase(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to setup database: %w", err)
 	}
+	defer cleanUp()
 	authConfig := &authbundle.AuthConfig{
 		JWTSecret:    cfg.Auth.JWTSecret,
 		JWTIssuer:    cfg.Auth.JWTIssuer,
@@ -79,6 +90,15 @@ func run(logger *slog.Logger) error {
 		CookieDomain: cfg.Auth.CookieDomain,
 		CookieSecure: cfg.Auth.CookieSecure,
 	}
+
+	otelShutdown, err := setupOtelSDK(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to setup OpenTelemetry SDK: %w", err)
+	}
+
+	defer func() {
+		err = errors.Join(err, otelShutdown(context.Background()))
+	}()
 
 
 	// ハンドラーの初期化
@@ -131,14 +151,6 @@ func run(logger *slog.Logger) error {
 	// シグナルハンドリング
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) // 監視すべきシグナルを列挙する
 	defer stop()
-
-	otelShutdown, err := setupOtelSDK(ctx)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = errors.Join(err, otelShutdown(context.Background()))
-	}()
 
 	var wg sync.WaitGroup
 

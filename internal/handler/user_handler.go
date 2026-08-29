@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"42tokyo-road-to-dena-server/authbundle"
 	"42tokyo-road-to-dena-server/internal/apperror"
@@ -80,10 +84,15 @@ type LoginRequest struct {
 }
 
 func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) error {
-	ctx := r.Context()
+	ctx, span := tracer.Start(r.Context(), "handler HandleUserLogin", trace.WithAttributes(
+	))
+	defer span.End()
+	// ctx := r.Context() // This line is redundant because ctx is already defined above with the span.
 	var reqBody LoginRequest
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&reqBody); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return errors.Join(apperror.ErrBadRequest, err)
 	}
 	userInfo := &domain.User{
@@ -92,6 +101,8 @@ func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) error 
 	}
 	id, err := h.userService.AuthenticateUser(ctx, userInfo)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
@@ -99,14 +110,20 @@ func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) error 
 
 	accessToken, err := h.authBundleService.GenerateAccessToken(id)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 	refreshToken, err := h.authBundleService.GenerateRefreshToken(ctx, id)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
 	authbundle.SetAuthCookies(w, accessToken, refreshToken, h.authConfig)
+
+	span.SetStatus(codes.Ok, "User login successful")
 
 	h.respondJSON(w, AuthResponse{
 		UserID:       id.String(),

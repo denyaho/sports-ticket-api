@@ -13,6 +13,7 @@ import (
 	"42tokyo-road-to-dena-server/internal/service"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type AuthBundleService interface {
@@ -99,7 +100,9 @@ func (h *Handler) Routes() http.Handler {
 		http.ServeFile(w, r, filepath.Join("docs", "swagger", "index.html"))
 	})
 
-	return h.Logging(mux)
+	handler := otelhttp.NewHandler(h.Logging(mux), "/")
+
+	return handler
 }
 
 func (h *Handler) respondJSON(w http.ResponseWriter, data any, status int) {
