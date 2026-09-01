@@ -1,0 +1,1316 @@
+{
+	"Resource": [
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "sports_ticket_app"
+			}
+		}
+	],
+	"ScopeMetrics": [
+		{
+			"Scope": {
+				"Name": "github.com/XSAM/otelsql",
+				"Version": "0.43.0",
+				"SchemaURL": "",
+				"Attributes": null
+			},
+			"Metrics": [
+				{
+					"Name": "db.sql.connection.wait_duration",
+					"Description": "The total time blocked waiting for a new connection",
+					"Unit": "ms",
+					"Data": {
+						"DataPoints": [
+							{
+								"Attributes": [
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.242311974Z",
+								"Time": "2026-08-29T09:21:24.243152396Z",
+								"Value": 0
+							}
+						],
+						"Temporality": "CumulativeTemporality",
+						"IsMonotonic": true
+					}
+				},
+				{
+					"Name": "db.sql.connection.closed_max_idle",
+					"Description": "The total number of connections closed due to SetMaxIdleConns",
+					"Unit": "",
+					"Data": {
+						"DataPoints": [
+							{
+								"Attributes": [
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.24233258Z",
+								"Time": "2026-08-29T09:21:24.243156299Z",
+								"Value": 0
+							}
+						],
+						"Temporality": "CumulativeTemporality",
+						"IsMonotonic": true
+					}
+				},
+				{
+					"Name": "db.sql.connection.closed_max_idle_time",
+					"Description": "The total number of connections closed due to SetConnMaxIdleTime",
+					"Unit": "",
+					"Data": {
+						"DataPoints": [
+							{
+								"Attributes": [
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.242347758Z",
+								"Time": "2026-08-29T09:21:24.243158286Z",
+								"Value": 0
+							}
+						],
+						"Temporality": "CumulativeTemporality",
+						"IsMonotonic": true
+					}
+				},
+				{
+					"Name": "db.sql.connection.closed_max_lifetime",
+					"Description": "The total number of connections closed due to SetConnMaxLifetime",
+					"Unit": "",
+					"Data": {
+						"DataPoints": [
+							{
+								"Attributes": [
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.242350587Z",
+								"Time": "2026-08-29T09:21:24.243158729Z",
+								"Value": 0
+							}
+						],
+						"Temporality": "CumulativeTemporality",
+						"IsMonotonic": true
+					}
+				},
+				{
+					"Name": "db.client.operation.duration",
+					"Description": "Duration of database client operations.",
+					"Unit": "s",
+					"Data": {
+						"DataPoints": [
+							{
+								"Attributes": [
+									{
+										"Key": "db.operation.name",
+										"Value": {
+											"Type": "STRING",
+											"Value": "sql.conn.reset_session"
+										}
+									},
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.242356916Z",
+								"Time": "2026-08-29T09:21:24.243163406Z",
+								"Count": 51,
+								"Bounds": [
+									0,
+									5,
+									10,
+									25,
+									50,
+									75,
+									100,
+									250,
+									500,
+									750,
+									1000,
+									2500,
+									5000,
+									7500,
+									10000
+								],
+								"BucketCounts": [
+									0,
+									51,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0
+								],
+								"Min": 0.000011126,
+								"Max": 0.001237348,
+								"Sum": 0.0033129939999999997,
+								"Exemplars": [
+									{
+										"FilteredAttributes": null,
+										"Time": "2026-08-29T09:21:23.577986119Z",
+										"Value": 0.000030838,
+										"SpanID": "Gryfsu/Ok2Q=",
+										"TraceID": "B665jbZ9oGyt9jLj7DA/dQ=="
+									}
+								]
+							},
+							{
+								"Attributes": [
+									{
+										"Key": "db.operation.name",
+										"Value": {
+											"Type": "STRING",
+											"Value": "sql.conn.query"
+										}
+									},
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.242356916Z",
+								"Time": "2026-08-29T09:21:24.243163406Z",
+								"Count": 4,
+								"Bounds": [
+									0,
+									5,
+									10,
+									25,
+									50,
+									75,
+									100,
+									250,
+									500,
+									750,
+									1000,
+									2500,
+									5000,
+									7500,
+									10000
+								],
+								"BucketCounts": [
+									0,
+									4,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0
+								],
+								"Min": 0.000588081,
+								"Max": 0.00514433,
+								"Sum": 0.007924895000000001,
+								"Exemplars": [
+									{
+										"FilteredAttributes": null,
+										"Time": "2026-08-29T09:21:23.578586591Z",
+										"Value": 0.000588081,
+										"SpanID": "Gryfsu/Ok2Q=",
+										"TraceID": "B665jbZ9oGyt9jLj7DA/dQ=="
+									}
+								]
+							},
+							{
+								"Attributes": [
+									{
+										"Key": "db.operation.name",
+										"Value": {
+											"Type": "STRING",
+											"Value": "sql.rows"
+										}
+									},
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.242356916Z",
+								"Time": "2026-08-29T09:21:24.243163406Z",
+								"Count": 4,
+								"Bounds": [
+									0,
+									5,
+									10,
+									25,
+									50,
+									75,
+									100,
+									250,
+									500,
+									750,
+									1000,
+									2500,
+									5000,
+									7500,
+									10000
+								],
+								"BucketCounts": [
+									0,
+									4,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0
+								],
+								"Min": 0.000050171,
+								"Max": 0.000067394,
+								"Sum": 0.00022895,
+								"Exemplars": [
+									{
+										"FilteredAttributes": null,
+										"Time": "2026-08-29T09:21:23.578611839Z",
+										"Value": 0.00005088,
+										"SpanID": "Gryfsu/Ok2Q=",
+										"TraceID": "B665jbZ9oGyt9jLj7DA/dQ=="
+									}
+								]
+							},
+							{
+								"Attributes": [
+									{
+										"Key": "db.operation.name",
+										"Value": {
+											"Type": "STRING",
+											"Value": "sql.conn.exec"
+										}
+									},
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.242356916Z",
+								"Time": "2026-08-29T09:21:24.243163406Z",
+								"Count": 47,
+								"Bounds": [
+									0,
+									5,
+									10,
+									25,
+									50,
+									75,
+									100,
+									250,
+									500,
+									750,
+									1000,
+									2500,
+									5000,
+									7500,
+									10000
+								],
+								"BucketCounts": [
+									0,
+									47,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0
+								],
+								"Min": 0.000640704,
+								"Max": 0.01052189,
+								"Sum": 0.10517393400000002,
+								"Exemplars": [
+									{
+										"FilteredAttributes": null,
+										"Time": "2026-08-29T09:21:23.651349083Z",
+										"Value": 0.009147773,
+										"SpanID": "Gryfsu/Ok2Q=",
+										"TraceID": "B665jbZ9oGyt9jLj7DA/dQ=="
+									}
+								]
+							}
+						],
+						"Temporality": "CumulativeTemporality"
+					}
+				},
+				{
+					"Name": "db.sql.connection.max_open",
+					"Description": "Maximum number of open connections to the database",
+					"Unit": "",
+					"Data": {
+						"DataPoints": [
+							{
+								"Attributes": [
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.242368632Z",
+								"Time": "2026-08-29T09:21:24.243186907Z",
+								"Value": 0
+							}
+						]
+					}
+				},
+				{
+					"Name": "db.sql.connection.open",
+					"Description": "The number of established connections both in use and idle",
+					"Unit": "",
+					"Data": {
+						"DataPoints": [
+							{
+								"Attributes": [
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									},
+									{
+										"Key": "status",
+										"Value": {
+											"Type": "STRING",
+											"Value": "idle"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.242371575Z",
+								"Time": "2026-08-29T09:21:24.243187862Z",
+								"Value": 1
+							},
+							{
+								"Attributes": [
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									},
+									{
+										"Key": "status",
+										"Value": {
+											"Type": "STRING",
+											"Value": "inuse"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.242371575Z",
+								"Time": "2026-08-29T09:21:24.243187862Z",
+								"Value": 0
+							}
+						]
+					}
+				},
+				{
+					"Name": "db.sql.connection.wait",
+					"Description": "The total number of connections waited for",
+					"Unit": "",
+					"Data": {
+						"DataPoints": [
+							{
+								"Attributes": [
+									{
+										"Key": "db.system",
+										"Value": {
+											"Type": "STRING",
+											"Value": "postgresql"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.242373618Z",
+								"Time": "2026-08-29T09:21:24.243189003Z",
+								"Value": 0
+							}
+						],
+						"Temporality": "CumulativeTemporality",
+						"IsMonotonic": true
+					}
+				}
+			]
+		},
+		{
+			"Scope": {
+				"Name": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+				"Version": "0.70.0",
+				"SchemaURL": "",
+				"Attributes": null
+			},
+			"Metrics": [
+				{
+					"Name": "http.server.request.body.size",
+					"Description": "Size of HTTP server request bodies.",
+					"Unit": "By",
+					"Data": {
+						"DataPoints": [
+							{
+									"Attributes": [
+									{
+										"Key": "http.request.method",
+										"Value": {
+											"Type": "STRING",
+											"Value": "POST"
+										}
+									},
+									{
+										"Key": "http.response.status_code",
+										"Value": {
+											"Type": "INT64",
+											"Value": 200
+										}
+									},
+									{
+										"Key": "network.protocol.name",
+										"Value": {
+											"Type": "STRING",
+											"Value": "http"
+										}
+									},
+									{
+										"Key": "network.protocol.version",
+										"Value": {
+											"Type": "STRING",
+											"Value": "1.1"
+										}
+									},
+									{
+										"Key": "server.address",
+										"Value": {
+											"Type": "STRING",
+											"Value": "localhost"
+										}
+									},
+									{
+										"Key": "server.port",
+										"Value": {
+											"Type": "INT64",
+											"Value": 8080
+										}
+									},
+									{
+										"Key": "url.scheme",
+										"Value": {
+											"Type": "STRING",
+											"Value": "http"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.244474396Z",
+								"Time": "2026-08-29T09:21:24.243190107Z",
+								"Count": 4,
+								"Bounds": [
+									0,
+									5,
+									10,
+									25,
+									50,
+									75,
+									100,
+									250,
+									500,
+									750,
+									1000,
+									2500,
+									5000,
+									7500,
+									10000
+								],
+								"BucketCounts": [
+									0,
+									0,
+									0,
+									0,
+									0,
+									4,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0
+								],
+								"Min": 61,
+								"Max": 61,
+								"Sum": 244,
+								"Exemplars": [
+									{
+										"FilteredAttributes": null,
+										"Time": "2026-08-29T09:21:23.651423795Z",
+										"Value": 61,
+										"SpanID": "Gryfsu/Ok2Q=",
+										"TraceID": "B665jbZ9oGyt9jLj7DA/dQ=="
+									}
+								]
+							}
+						],
+						"Temporality": "CumulativeTemporality"
+					}
+				},
+				{
+					"Name": "http.server.response.body.size",
+					"Description": "Size of HTTP server response bodies.",
+					"Unit": "By",
+					"Data": {
+						"DataPoints": [
+							{
+								"Attributes": [
+									{
+										"Key": "http.request.method",
+										"Value": {
+											"Type": "STRING",
+											"Value": "POST"
+										}
+									},
+									{
+										"Key": "http.response.status_code",
+										"Value": {
+											"Type": "INT64",
+											"Value": 200
+										}
+									},
+									{
+										"Key": "network.protocol.name",
+										"Value": {
+											"Type": "STRING",
+											"Value": "http"
+										}
+									},
+									{
+										"Key": "network.protocol.version",
+										"Value": {
+											"Type": "STRING",
+											"Value": "1.1"
+										}
+									},
+									{
+										"Key": "server.address",
+										"Value": {
+											"Type": "STRING",
+											"Value": "localhost"
+										}
+									},
+									{
+										"Key": "server.port",
+										"Value": {
+											"Type": "INT64",
+											"Value": 8080
+										}
+									},
+									{
+										"Key": "url.scheme",
+										"Value": {
+											"Type": "STRING",
+											"Value": "http"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.244486804Z",
+								"Time": "2026-08-29T09:21:24.243198296Z",
+								"Count": 4,
+								"Bounds": [
+									0,
+									5,
+									10,
+									25,
+									50,
+									75,
+									100,
+									250,
+									500,
+									750,
+									1000,
+									2500,
+									5000,
+									7500,
+									10000
+								],
+								"BucketCounts": [
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									4,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0
+								],
+								"Min": 441,
+								"Max": 441,
+								"Sum": 1764,
+								"Exemplars": [
+									{
+										"FilteredAttributes": null,
+										"Time": "2026-08-29T09:21:23.651425058Z",
+										"Value": 441,
+										"SpanID": "Gryfsu/Ok2Q=",
+										"TraceID": "B665jbZ9oGyt9jLj7DA/dQ=="
+									}
+								]
+							}
+						],
+						"Temporality": "CumulativeTemporality"
+					}
+				},
+				{
+					"Name": "http.server.request.duration",
+					"Description": "Duration of HTTP server requests.",
+					"Unit": "s",
+					"Data": {
+						"DataPoints": [
+							{
+								"Attributes": [
+									{
+										"Key": "http.request.method",
+										"Value": {
+											"Type": "STRING",
+											"Value": "POST"
+										}
+									},
+									{
+										"Key": "http.response.status_code",
+										"Value": {
+											"Type": "INT64",
+											"Value": 200
+										}
+									},
+									{
+										"Key": "network.protocol.name",
+										"Value": {
+											"Type": "STRING",
+											"Value": "http"
+										}
+									},
+									{
+										"Key": "network.protocol.version",
+										"Value": {
+											"Type": "STRING",
+											"Value": "1.1"
+										}
+									},
+									{
+										"Key": "server.address",
+										"Value": {
+											"Type": "STRING",
+											"Value": "localhost"
+										}
+									},
+									{
+										"Key": "server.port",
+										"Value": {
+											"Type": "INT64",
+											"Value": 8080
+										}
+									},
+									{
+										"Key": "url.scheme",
+										"Value": {
+											"Type": "STRING",
+											"Value": "http"
+										}
+									}
+								],
+								"StartTime": "2026-08-29T08:38:04.244493441Z",
+								"Time": "2026-08-29T09:21:24.243202417Z",
+								"Count": 4,
+								"Bounds": [
+									0.005,
+									0.01,
+									0.025,
+									0.05,
+									0.075,
+									0.1,
+									0.25,
+									0.5,
+									0.75,
+									1,
+									2.5,
+									5,
+									7.5,
+									10
+								],
+								"BucketCounts": [
+									0,
+									0,
+									0,
+									0,
+									2,
+									2,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0,
+									0
+								],
+								"Min": 0.073576058,
+								"Max": 0.080126983,
+								"Sum": 0.305492397,
+								"Exemplars": [
+									{
+										"FilteredAttributes": null,
+										"Time": "2026-08-29T09:21:23.651426465Z",
+										"Value": 0.073576058,
+										"SpanID": "Gryfsu/Ok2Q=",
+										"TraceID": "B665jbZ9oGyt9jLj7DA/dQ=="
+									},
+									{
+										"FilteredAttributes": null,
+										"Time": "2026-08-29T08:38:28.988315737Z",
+										"Value": 0.078208945,
+										"SpanID": "Y52sKWEYjfE=",
+										"TraceID": "VogV7EojUfwcpuGko1Or+w=="
+									}
+								]
+							}
+						],
+						"Temporality": "CumulativeTemporality"
+					}
+				}
+			]
+		}
+	]
+}
+{
+	"Name": "sql.conn.reset_session",
+	"SpanContext": {
+		"TraceID": "07aeb98db67da06cadf632e3ec303f75",
+		"SpanID": "e3a65840e3e0b010",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "07aeb98db67da06cadf632e3ec303f75",
+		"SpanID": "1abc9fb2efce9364",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 3,
+	"StartTime": "2026-08-29T09:21:23.577968792Z",
+	"EndTime": "2026-08-29T09:21:23.577971255Z",
+	"Attributes": [
+		{
+			"Key": "db.system",
+			"Value": {
+				"Type": "STRING",
+				"Value": "postgresql"
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Unset",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "sports_ticket_app"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "github.com/XSAM/otelsql",
+		"Version": "0.43.0",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "github.com/XSAM/otelsql",
+		"Version": "0.43.0",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+	"Name": "sql.conn.query",
+	"SpanContext": {
+		"TraceID": "07aeb98db67da06cadf632e3ec303f75",
+		"SpanID": "4134c29718fa3527",
+		"TraceFlags": "01",
+{
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "07aeb98db67da06cadf632e3ec303f75",
+		"SpanID": "1abc9fb2efce9364",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 3,
+	"StartTime": "2026-08-29T09:21:23.577991085Z",
+	"EndTime": "2026-08-29T09:21:23.578569627Z",
+	"Attributes": [
+		{
+			"Key": "db.system",
+			"Value": {
+				"Type": "STRING",
+				"Value": "postgresql"
+			}
+		},
+		{
+			"Key": "db.query.text",
+			"Value": {
+				"Type": "STRING",
+				"Value": "SELECT id, password_hash FROM users WHERE email = $1"
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Unset",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "sports_ticket_app"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "github.com/XSAM/otelsql",
+		"Version": "0.43.0",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "github.com/XSAM/otelsql",
+		"Version": "0.43.0",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+{
+	"Name": "sql.rows",
+	"SpanContext": {
+		"TraceID": "07aeb98db67da06cadf632e3ec303f75",
+		"SpanID": "039576e5d0e66b1e",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "07aeb98db67da06cadf632e3ec303f75",
+		"SpanID": "1abc9fb2efce9364",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 3,
+	"StartTime": "2026-08-29T09:21:23.578563745Z",
+	"EndTime": "2026-08-29T09:21:23.578608238Z",
+	"Attributes": [
+		{
+			"Key": "db.system",
+			"Value": {
+				"Type": "STRING",
+				"Value": "postgresql"
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Unset",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "sports_ticket_app"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "github.com/XSAM/otelsql",
+		"Version": "0.43.0",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "github.com/XSAM/otelsql",
+		"Version": "0.43.0",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+{
+	"Name": "sql.conn.reset_session",
+	"SpanContext": {
+		"TraceID": "07aeb98db67da06cadf632e3ec303f75",
+		"SpanID": "d450d51b7410a1c6",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "07aeb98db67da06cadf632e3ec303f75",
+		"SpanID": "1abc9fb2efce9364",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 3,
+	"StartTime": "2026-08-29T09:21:23.642176388Z",
+	"EndTime": "2026-08-29T09:21:23.642178254Z",
+	"Attributes": [
+		{
+			"Key": "db.system",
+			"Value": {
+				"Type": "STRING",
+				"Value": "postgresql"
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Unset",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "sports_ticket_app"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "github.com/XSAM/otelsql",
+		"Version": "0.43.0",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "github.com/XSAM/otelsql",
+		"Version": "0.43.0",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+{
+	"Name": "sql.conn.exec",
+	"SpanContext": {
+		"TraceID": "07aeb98db67da06cadf632e3ec303f75",
+		"SpanID": "681f543f85daa0bb",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "07aeb98db67da06cadf632e3ec303f75",
+		"SpanID": "1abc9fb2efce9364",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 3,
+	"StartTime": "2026-08-29T09:21:23.642195483Z",
+	"EndTime": "2026-08-29T09:21:23.651338577Z",
+	"Attributes": [
+		{
+			"Key": "db.system",
+			"Value": {
+				"Type": "STRING",
+				"Value": "postgresql"
+			}
+		},
+		{
+			"Key": "db.query.text",
+			"Value": {
+				"Type": "STRING",
+				"Value": "\n\t\tINSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at, updated_at)\n\t\tVALUES ($1, $2, $3, $4, $5, $6)\n\t"
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Unset",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 0,
+	"Resource": [
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "sports_ticket_app"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "github.com/XSAM/otelsql",
+		"Version": "0.43.0",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "github.com/XSAM/otelsql",
+		"Version": "0.43.0",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}
+{
+	"Name": "POST",
+	"SpanContext": {
+		"TraceID": "07aeb98db67da06cadf632e3ec303f75",
+		"SpanID": "1abc9fb2efce9364",
+		"TraceFlags": "01",
+		"TraceState": "",
+		"Remote": false
+	},
+	"Parent": {
+		"TraceID": "00000000000000000000000000000000",
+		"SpanID": "0000000000000000",
+		"TraceFlags": "00",
+		"TraceState": "",
+		"Remote": false
+	},
+	"SpanKind": 2,
+	"StartTime": "2026-08-29T09:21:23.577868562Z",
+	"EndTime": "2026-08-29T09:21:23.651426965Z",
+	"Attributes": [
+		{
+			"Key": "server.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "localhost"
+			}
+		},
+		{
+			"Key": "http.request.method",
+			"Value": {
+				"Type": "STRING",
+				"Value": "POST"
+			}
+		},
+		{
+			"Key": "url.scheme",
+			"Value": {
+				"Type": "STRING",
+				"Value": "http"
+			}
+		},
+		{
+			"Key": "server.port",
+			"Value": {
+				"Type": "INT64",
+				"Value": 8080
+			}
+		},
+		{
+			"Key": "network.peer.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "172.18.0.1"
+			}
+		},
+		{
+			"Key": "network.peer.port",
+			"Value": {
+				"Type": "INT64",
+				"Value": 56700
+			}
+		},
+		{
+			"Key": "user_agent.original",
+			"Value": {
+				"Type": "STRING",
+				"Value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+			}
+		},
+		{
+			"Key": "client.address",
+			"Value": {
+				"Type": "STRING",
+				"Value": "172.18.0.1"
+			}
+		},
+		{
+			"Key": "url.path",
+			"Value": {
+				"Type": "STRING",
+				"Value": "/api/user/login"
+			}
+		},
+		{
+			"Key": "network.protocol.version",
+			"Value": {
+				"Type": "STRING",
+				"Value": "1.1"
+			}
+		},
+		{
+			"Key": "http.request.body.size",
+			"Value": {
+				"Type": "INT64",
+				"Value": 61
+			}
+		},
+		{
+			"Key": "http.response.body.size",
+			"Value": {
+				"Type": "INT64",
+				"Value": 441
+			}
+		},
+		{
+			"Key": "http.response.status_code",
+			"Value": {
+				"Type": "INT64",
+				"Value": 200
+			}
+		}
+	],
+	"Events": null,
+	"Links": null,
+	"Status": {
+		"Code": "Unset",
+		"Description": ""
+	},
+	"DroppedAttributes": 0,
+	"DroppedEvents": 0,
+	"DroppedLinks": 0,
+	"ChildSpanCount": 5,
+	"Resource": [
+		{
+			"Key": "service.name",
+			"Value": {
+				"Type": "STRING",
+				"Value": "sports_ticket_app"
+			}
+		}
+	],
+	"InstrumentationScope": {
+		"Name": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+		"Version": "0.70.0",
+		"SchemaURL": "",
+		"Attributes": null
+	},
+	"InstrumentationLibrary": {
+		"Name": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+		"Version": "0.70.0",
+		"SchemaURL": "",
+		"Attributes": null
+	}
+}

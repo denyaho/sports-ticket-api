@@ -91,8 +91,6 @@ func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) error 
 	var reqBody LoginRequest
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&reqBody); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return errors.Join(apperror.ErrBadRequest, err)
 	}
 	userInfo := &domain.User{
@@ -102,7 +100,6 @@ func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) error 
 	id, err := h.userService.AuthenticateUser(ctx, userInfo)
 	if err != nil {
 		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
@@ -110,20 +107,14 @@ func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) error 
 
 	accessToken, err := h.authBundleService.GenerateAccessToken(id)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 	refreshToken, err := h.authBundleService.GenerateRefreshToken(ctx, id)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
 	authbundle.SetAuthCookies(w, accessToken, refreshToken, h.authConfig)
-
-	span.SetStatus(codes.Ok, "User login successful")
 
 	h.respondJSON(w, AuthResponse{
 		UserID:       id.String(),

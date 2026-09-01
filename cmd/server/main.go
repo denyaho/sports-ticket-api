@@ -69,6 +69,8 @@ func setupDatabase(cfg *config.Config) (*sql.DB, func() error, error) {
 	return db, cleanUp, nil
 }
 
+
+
 func run(logger *slog.Logger) (err error) {
 	// 設定の読み込み
 	cfg, err := config.Load(logger)
