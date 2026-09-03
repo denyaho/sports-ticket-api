@@ -5,8 +5,6 @@ import (
 	"errors"
 	"net/http"
 	
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
 	"42tokyo-road-to-dena-server/authbundle"

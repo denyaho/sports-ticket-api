@@ -49,6 +49,18 @@ services:
       - "55679:55679"
       - "13133:13133"
       - "1777:1777"
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - "3010:3000"
+    volumes:
+      - grafana_storage:/var/lib/grafana
+    depends_on:
+      - loki
+      - prometheus
+
   prometheus:
     container_name: prometheus
     image: prom/prometheus:latest
@@ -76,4 +88,6 @@ services:
 volumes:
   postgres_data:
   loki-data:
+    driver: local
+  grafana_storage:
     driver: local

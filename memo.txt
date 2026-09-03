@@ -47,3 +47,8 @@ opentelemetryについて
 https://zenn.dev/sumiren/articles/4d88f8ce4e875c
 
 https://blog.cybozu.io/entry/2023/04/12/170000
+
+
+Observability
+
+https://www.ogis-ri.co.jp/otc/hiroba/technical/kubernetes_use/part10.html

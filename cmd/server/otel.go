@@ -4,21 +4,18 @@ import (
 	"context"
 	"errors"
 	"time"
-	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/metric/prometheus"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 
 	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -30,7 +27,7 @@ var (
 
 func initConn() (*grpc.ClientConn, error) {
 	conn, err := grpc.Dial(
-		"localhost:4317",
+		"otel-collector:4317",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -48,8 +45,8 @@ func setupOtelSDK(ctx context.Context) (func(context.Context) error, error) {
 
 	shutdown := func(ctx context.Context) error {
 		var err error
-		for _, fn := range shutdownFuncs {
-			err = errors.Join(err, fn(ctx))
+		for i := len(shutdownFuncs) - 1; i >= 0; i-- {
+			err = errors.Join(err, shutdownFuncs[i](ctx))
 		}
 		shutdownFuncs = nil
 		return err
@@ -64,6 +61,10 @@ func setupOtelSDK(ctx context.Context) (func(context.Context) error, error) {
 		handleErr(err)
 		return nil, err
 	}
+
+	shutdownFuncs = append(shutdownFuncs, func(_ context.Context) error {
+		return conn.Close()
+	})
 
 	res := resource.NewWithAttributes(
 		semconv.SchemaURL,
@@ -82,8 +83,6 @@ func setupOtelSDK(ctx context.Context) (func(context.Context) error, error) {
 	shutdownFuncs = append(shutdownFuncs, traceProvider.Shutdown)
 	otel.SetTracerProvider(traceProvider)
 
-	shutdownFuncs = append(shutdownFuncs, conn.Close)
-
 	meterProvider, err := newMeterProvider(setupCtx, res, conn) 
 	if err != nil {
 		handleErr(err)
@@ -92,7 +91,7 @@ func setupOtelSDK(ctx context.Context) (func(context.Context) error, error) {
 	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
 
-	loggerProvider, err := newLoggerProvider()
+	loggerProvider, err := newLoggerProvider(setupCtx, conn)
 	if err != nil {
 		handleErr(err)
 		return nil, err
@@ -128,10 +127,6 @@ func newMeterProvider(ctx context.Context, res *resource.Resource, conn *grpc.Cl
 		return nil, err
 	}
 
-	exporter, err := prometheus.New()
-	if err != nil {
-		return nil, err
-	}
 	meterProvider := metric.NewMeterProvider(
 		metric.WithReader(metric.NewPeriodicReader(metricExporter, metric.WithInterval(10*time.Second))),
 		metric.WithResource(res),
@@ -139,8 +134,8 @@ func newMeterProvider(ctx context.Context, res *resource.Resource, conn *grpc.Cl
 	return meterProvider, nil
 }
 
-func newLoggerProvider() (*log.LoggerProvider, error) {
-	logExporter, err := stdoutlog.New(stdoutlog.WithPrettyPrint())
+func newLoggerProvider(ctx context.Context, conn *grpc.ClientConn) (*log.LoggerProvider, error) {
+	logExporter, err := otlploggrpc.New(ctx, otlploggrpc.WithGRPCConn(conn))
 	if err != nil {
 		return nil, err
 	}
