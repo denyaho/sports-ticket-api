@@ -91,7 +91,7 @@ func setupOtelSDK(ctx context.Context) (func(context.Context) error, error) {
 	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
 
-	loggerProvider, err := newLoggerProvider(setupCtx, conn)
+	loggerProvider, err := newLoggerProvider(setupCtx, res, conn)
 	if err != nil {
 		handleErr(err)
 		return nil, err
@@ -134,13 +134,14 @@ func newMeterProvider(ctx context.Context, res *resource.Resource, conn *grpc.Cl
 	return meterProvider, nil
 }
 
-func newLoggerProvider(ctx context.Context, conn *grpc.ClientConn) (*log.LoggerProvider, error) {
+func newLoggerProvider(ctx context.Context, res *resource.Resource, conn *grpc.ClientConn) (*log.LoggerProvider, error) {
 	logExporter, err := otlploggrpc.New(ctx, otlploggrpc.WithGRPCConn(conn))
 	if err != nil {
 		return nil, err
 	}
 
 	loggerProvider := log.NewLoggerProvider(
+		log.WithResource(res),
 		log.WithProcessor(log.NewBatchProcessor(logExporter)),
 	)
 	return loggerProvider, nil

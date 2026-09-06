@@ -23,15 +23,38 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/XSAM/otelsql"
 	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
+	"github.com/samber/slog-multi"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 )
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	if err := run(logger); err != nil {
+
+	if err := realMain(); err != nil {
 		logger.Error("Error running server", "error", err)
 		os.Exit(1)
 	}
 	logger.Info("Server exited gracefully")
+}
+
+func realMain() (err error) {
+	ctx := context.Background()
+	otelShutdown, err := setupOtelSDK(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to setup OpenTelemetry SDK: %w", err)
+	}
+	defer func() {
+		err = errors.Join(err, otelShutdown(ctx))
+	}()
+	logger := slog.New(slogmulti.Fanout(
+		otelslog.NewHandler("sports_ticket_app"),
+		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}),
+	))
+	slog.SetDefault(logger)
+
+	return run(ctx, logger)
 }
 
 func setupDatabase(cfg *config.Config) (*sql.DB, func() error, error) {
@@ -70,8 +93,7 @@ func setupDatabase(cfg *config.Config) (*sql.DB, func() error, error) {
 }
 
 
-
-func run(logger *slog.Logger) (err error) {
+func run(ctx context.Context, logger *slog.Logger) (err error) {
 	// 設定の読み込み
 	cfg, err := config.Load(logger)
 	if err != nil {
@@ -92,15 +114,6 @@ func run(logger *slog.Logger) (err error) {
 		CookieDomain: cfg.Auth.CookieDomain,
 		CookieSecure: cfg.Auth.CookieSecure,
 	}
-
-	otelShutdown, err := setupOtelSDK(context.Background())
-	if err != nil {
-		return fmt.Errorf("failed to setup OpenTelemetry SDK: %w", err)
-	}
-
-	defer func() {
-		err = errors.Join(err, otelShutdown(context.Background()))
-	}()
 
 
 	// ハンドラーの初期化
@@ -144,14 +157,14 @@ func run(logger *slog.Logger) (err error) {
 	// サーバーの起動（非同期）
 	errCh := make(chan error, 1)
 	go func() {
-		logger.Info("Starting server", "address", srv.Addr)
+		logger.InfoContext(ctx, "Starting server", "address", srv.Addr)
 		if errServ := srv.ListenAndServe(); errServ != nil && !errors.Is(errServ, http.ErrServerClosed) {
 			errCh <- fmt.Errorf("failed to start server: %w", errServ)
 		}
 	}()
 
 	// シグナルハンドリング
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) // 監視すべきシグナルを列挙する
+	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) // 監視すべきシグナルを列挙する
 	defer stop()
 
 	var wg sync.WaitGroup
@@ -164,10 +177,10 @@ func run(logger *slog.Logger) (err error) {
 		for {
 			select {
 			case <-ticker.C:
-				if errRes := reservationService.ExpiredReservations(ctx); errRes != nil {
-					logger.Error("Error checking expired reservations", "error", errRes)
+				if errRes := reservationService.ExpiredReservations(signalCtx); errRes != nil {
+					logger.ErrorContext(ctx, "Error checking expired reservations", "error", errRes)
 				}
-			case <-ctx.Done():
+			case <-signalCtx.Done():
 				return
 			}
 		}
@@ -175,8 +188,8 @@ func run(logger *slog.Logger) (err error) {
 	select {
 	case err = <-errCh:
 		return err
-	case <-ctx.Done():
-		logger.Info("Shutting down server...")
+	case <-signalCtx.Done():
+		logger.InfoContext(ctx, "Shutting down server...")
 	}
 	// グレースフルシャットダウン
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -191,6 +204,6 @@ func run(logger *slog.Logger) (err error) {
 	default:
 	}
 	wg.Wait()
-	logger.Info("Server exited")
+	logger.InfoContext(signalCtx, "Server exited")
 	return nil
 }
