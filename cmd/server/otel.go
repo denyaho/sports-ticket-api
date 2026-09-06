@@ -3,30 +3,32 @@ package main
 import (
 	"context"
 	"errors"
+	"slices"
 	"time"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	
+
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
 
-	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 	"go.opentelemetry.io/otel/sdk/resource"
+	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 )
 
-var (
+const (
 	serviceName = "sports_ticket_app"
 )
 
 func initConn() (*grpc.ClientConn, error) {
-	conn, err := grpc.Dial(
+	conn, err := grpc.NewClient(
 		"otel-collector:4317",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
@@ -44,16 +46,17 @@ func setupOtelSDK(ctx context.Context) (func(context.Context) error, error) {
 	defer cancel()
 
 	shutdown := func(ctx context.Context) error {
-		var err error
-		for i := len(shutdownFuncs) - 1; i >= 0; i-- {
-			err = errors.Join(err, shutdownFuncs[i](ctx))
+		var errShut error
+		iter := slices.Backward(shutdownFuncs)
+		for _, v := range iter {
+			errShut = errors.Join(errShut, v(ctx))
 		}
 		shutdownFuncs = nil
-		return err
+		return errShut
 	}
 
 	handleErr := func(inErr error) {
-		err = errors.Join(inErr, shutdown(ctx))	
+		err = errors.Join(inErr, shutdown(ctx))
 	}
 
 	conn, err := initConn()
@@ -74,16 +77,16 @@ func setupOtelSDK(ctx context.Context) (func(context.Context) error, error) {
 	prop := newPropagator()
 	otel.SetTextMapPropagator(prop)
 
-	traceProvider, err := newTraceProvider(setupCtx,res, conn)
+	traceProvider, err := newTraceProvider(setupCtx, res, conn)
 	if err != nil {
 		handleErr(err)
 		return nil, err
 	}
-	
+
 	shutdownFuncs = append(shutdownFuncs, traceProvider.Shutdown)
 	otel.SetTracerProvider(traceProvider)
 
-	meterProvider, err := newMeterProvider(setupCtx, res, conn) 
+	meterProvider, err := newMeterProvider(setupCtx, res, conn)
 	if err != nil {
 		handleErr(err)
 		return nil, err
@@ -109,7 +112,11 @@ func newPropagator() propagation.TextMapPropagator {
 	)
 }
 
-func newTraceProvider(ctx context.Context, res *resource.Resource, conn *grpc.ClientConn) (*trace.TracerProvider, error){
+func newTraceProvider(
+	ctx context.Context,
+	res *resource.Resource,
+	conn *grpc.ClientConn,
+) (*trace.TracerProvider, error) {
 	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
 	if err != nil {
 		return nil, err
@@ -121,7 +128,11 @@ func newTraceProvider(ctx context.Context, res *resource.Resource, conn *grpc.Cl
 	return traceProvider, nil
 }
 
-func newMeterProvider(ctx context.Context, res *resource.Resource, conn *grpc.ClientConn) (*metric.MeterProvider, error) {
+func newMeterProvider(
+	ctx context.Context,
+	res *resource.Resource,
+	conn *grpc.ClientConn,
+) (*metric.MeterProvider, error) {
 	metricExporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithGRPCConn(conn))
 	if err != nil {
 		return nil, err
@@ -134,7 +145,11 @@ func newMeterProvider(ctx context.Context, res *resource.Resource, conn *grpc.Cl
 	return meterProvider, nil
 }
 
-func newLoggerProvider(ctx context.Context, res *resource.Resource, conn *grpc.ClientConn) (*log.LoggerProvider, error) {
+func newLoggerProvider(
+	ctx context.Context,
+	res *resource.Resource,
+	conn *grpc.ClientConn,
+) (*log.LoggerProvider, error) {
 	logExporter, err := otlploggrpc.New(ctx, otlploggrpc.WithGRPCConn(conn))
 	if err != nil {
 		return nil, err

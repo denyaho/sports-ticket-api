@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	
+
 	"go.opentelemetry.io/otel/trace"
 
 	"42tokyo-road-to-dena-server/authbundle"
@@ -82,8 +82,7 @@ type LoginRequest struct {
 }
 
 func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) error {
-	ctx, span := tracer.Start(r.Context(), "handler HandleUserLogin", trace.WithAttributes(
-	))
+	ctx, span := tracer.Start(r.Context(), "handler HandleUserLogin", trace.WithAttributes())
 	defer span.End()
 	// ctx := r.Context() // This line is redundant because ctx is already defined above with the span.
 	var reqBody LoginRequest

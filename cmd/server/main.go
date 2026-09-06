@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
-	"sync"
 
 	"42tokyo-road-to-dena-server/authbundle"
 	"42tokyo-road-to-dena-server/config"
@@ -19,12 +19,12 @@ import (
 	"42tokyo-road-to-dena-server/internal/repository"
 	"42tokyo-road-to-dena-server/internal/service"
 
+	"github.com/XSAM/otelsql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"github.com/XSAM/otelsql"
-	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
-	"github.com/samber/slog-multi"
+	slogmulti "github.com/samber/slog-multi"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
+	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
 )
 
 func main() {
@@ -76,35 +76,34 @@ func setupDatabase(cfg *config.Config) (*sql.DB, func() error, error) {
 
 	reg, err := otelsql.RegisterDBStatsMetrics(db, otelsql.WithAttributes(semconv.DBSystemPostgreSQL))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to register DB stats metrics: %w", err)
+		return nil, nil, errors.Join(fmt.Errorf("failed to register DB stats metrics: %w", err), db.Close())
 	}
 
 	cleanUp := func() error {
-		return errors.Join(db.Close(), reg.Unregister())
+		return errors.Join(reg.Unregister(), db.Close())
 	}
 
 	pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err = db.PingContext(pingCtx); err != nil {
-		return nil, cleanUp, fmt.Errorf("failed to connect to database: %w", err)
+		return nil, nil, errors.Join(fmt.Errorf("failed to connect to database: %w", err), cleanUp())
 	}
 	return db, cleanUp, nil
 }
 
-
 func run(ctx context.Context, logger *slog.Logger) (err error) {
-	// 設定の読み込み
 	cfg, err := config.Load(logger)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
-	// DB接続の初期化
 	db, cleanUp, err := setupDatabase(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to setup database: %w", err)
 	}
-	defer cleanUp()
+	defer func() {
+		err = errors.Join(err, cleanUp())
+	}()
 	authConfig := &authbundle.AuthConfig{
 		JWTSecret:    cfg.Auth.JWTSecret,
 		JWTIssuer:    cfg.Auth.JWTIssuer,
@@ -114,9 +113,6 @@ func run(ctx context.Context, logger *slog.Logger) (err error) {
 		CookieDomain: cfg.Auth.CookieDomain,
 		CookieSecure: cfg.Auth.CookieSecure,
 	}
-
-
-	// ハンドラーの初期化
 	userrepo := repository.NewUserRepository(db)
 	userservice := service.NewUserService(userrepo)
 
@@ -132,7 +128,6 @@ func run(ctx context.Context, logger *slog.Logger) (err error) {
 		service.WithHoldTime(cfg.Reservation.ReservationExpiration),
 		service.WithMaxSeats(cfg.Reservation.MaxSeats),
 	)
-
 	store := authbundle.NewRefreshTokenStore(sqlx.NewDb(db, cfg.Database.Driver))
 	authbundle := authbundle.NewAuthBundle(authConfig, store)
 
@@ -153,8 +148,6 @@ func run(ctx context.Context, logger *slog.Logger) (err error) {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-
-	// サーバーの起動（非同期）
 	errCh := make(chan error, 1)
 	go func() {
 		logger.InfoContext(ctx, "Starting server", "address", srv.Addr)
@@ -169,9 +162,7 @@ func run(ctx context.Context, logger *slog.Logger) (err error) {
 
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
 		for {
@@ -184,17 +175,15 @@ func run(ctx context.Context, logger *slog.Logger) (err error) {
 				return
 			}
 		}
-	}()
+	})
 	select {
 	case err = <-errCh:
 		return err
 	case <-signalCtx.Done():
 		logger.InfoContext(ctx, "Shutting down server...")
 	}
-	// グレースフルシャットダウン
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-
 	if err = srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("server shutdown failed: %w", err)
 	}

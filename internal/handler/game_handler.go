@@ -7,13 +7,12 @@ import (
 	"42tokyo-road-to-dena-server/internal/apperror"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"go.opentelemetry.io/otel"
 )
 
 func (h *Handler) HandleGetAllGames(w http.ResponseWriter, r *http.Request) error {
-
 	ctx, span := otel.Tracer("handler").Start(r.Context(), "handler HandleGetAllGames", trace.WithAttributes(
 		attribute.String("http.method", r.Method),
 		attribute.String("http.url", r.URL.String()),
