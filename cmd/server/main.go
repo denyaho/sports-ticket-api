@@ -69,7 +69,13 @@ func setupDatabase(cfg *config.Config) (*sql.DB, func() error, error) {
 		dBcfg.Name,
 	)
 
-	db, err := otelsql.Open(dbDriver, dsn, otelsql.WithAttributes(semconv.DBSystemPostgreSQL))
+	db, err := otelsql.Open(dbDriver, dsn, 
+		otelsql.WithAttributes(
+			semconv.DBSystemPostgreSQL,
+			semconv.DBName(cfg.Database.Name),
+			semconv.ServerAddreess(cfg.Database.Host),
+			semconv.ServerPort(cfg.Database.Port),
+		))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open database: %w", err)
 	}

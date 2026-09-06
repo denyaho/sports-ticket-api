@@ -85,6 +85,16 @@ services:
     volumes:
       - ./docker/loki/loki-config.yml:/etc/loki/local-config.yml
       - loki-data:/tmp/loki
+  cAdvisor:
+    container_name: cadvisor
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
 volumes:
   postgres_data:
   loki-data:

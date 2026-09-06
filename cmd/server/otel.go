@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/runtime"
 
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.25.0"
@@ -93,6 +94,16 @@ func setupOtelSDK(ctx context.Context) (func(context.Context) error, error) {
 	}
 	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
 	otel.SetMeterProvider(meterProvider)
+
+	err = runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second))
+	if err != nil {
+		handleErr(err)
+		return nil, err
+	}
+
+	shutdownFuncs = append(shutdownFuncs, func(_ context.Context) error {
+		return runtime.Shutdown()
+	})
 
 	loggerProvider, err := newLoggerProvider(setupCtx, res, conn)
 	if err != nil {
