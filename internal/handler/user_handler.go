@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
 	"go.opentelemetry.io/otel/codes"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -122,6 +123,8 @@ func (h *Handler) HandleUserLogin(w http.ResponseWriter, r *http.Request) error 
 	var reqBody LoginRequest
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&reqBody); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return errors.Join(apperror.ErrBadRequest, err)
 	}
 	userInfo := &domain.User{
@@ -178,6 +181,8 @@ func (h *Handler) HandleUserSignup(w http.ResponseWriter, r *http.Request) error
 	var reqBody SignupRequest
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&reqBody); err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return errors.Join(apperror.ErrBadRequest, err)
 	}
 

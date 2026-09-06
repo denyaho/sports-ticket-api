@@ -44,6 +44,8 @@ func (h *Handler) HandleGetGameByID(w http.ResponseWriter, r *http.Request) erro
 	id := r.PathValue("id")
 	gameID, err := uuid.Parse(id)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return fmt.Errorf("invalid UUID: %w", apperror.ErrBadRequest)
 	}
 	game, err := h.gameService.GetGameByID(ctx, gameID)

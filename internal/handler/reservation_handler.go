@@ -111,6 +111,7 @@ func (h *Handler) HandleGetUserReservations(w http.ResponseWriter, r *http.Reque
 	return nil
 }
 
+//nolint:dupl // this is why similar code exists for other reservation handlers
 func (h *Handler) HandleGetReservationByID(w http.ResponseWriter, r *http.Request) error {
 	ctx, span := tracer.Start(r.Context(), "GET /api/reservations/{id}", trace.WithAttributes(
 		attribute.String("http.request.method", r.Method),
@@ -144,6 +145,7 @@ func (h *Handler) HandleGetReservationByID(w http.ResponseWriter, r *http.Reques
 	return nil
 }
 
+//nolint:dupl // this is why similar code exists for other reservation handlers
 func (h *Handler) HandlePurchaseReservation(w http.ResponseWriter, r *http.Request) error {
 	ctx, span := tracer.Start(r.Context(), "POST /api/reservations/{id}/purchase", trace.WithAttributes(
 		attribute.String("http.request.method", r.Method),
