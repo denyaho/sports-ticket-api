@@ -405,6 +405,24 @@ linters:
       # Default: "" (disabled)
       context: scope
 
+    spancheck:
+      # Checks to enable.
+      # - `end`:          span.End() が呼ばれているか
+      # - `record-error`: エラー返却時に span.RecordError(err) が呼ばれているか
+      # - `set-status`:   エラー返却時に span.SetStatus(codes.Error, ...) が呼ばれているか
+      # https://github.com/jjti/go-spancheck
+      # Default: ["end"]
+      checks:
+        - end
+        - record-error
+        - set-status
+      # RecordError / SetStatus のチェック対象とする、Span を返す関数シグネチャの追加パターン。
+      # otel の tracer.Start しか使わない前提なら未指定でよい。
+      # extra-start-span-signatures: []
+      # `error` 型以外に「エラーとして扱う型」を追加したい場合の正規表現。
+      # 独自エラー型を使っていないなら未指定でよい。
+      # ignore-check-signatures: []
+
     staticcheck:
       # SAxxxx checks in https://staticcheck.dev/docs/configuration/options/#checks
       # Example (to disable some checks): [ "all", "-SA1000", "-SA1001"]

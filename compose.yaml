@@ -70,7 +70,7 @@ services:
       - "19090:9090"
   jaeger:
     container_name: jaeger
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/jaeger:latest
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     ports:
@@ -81,7 +81,7 @@ services:
     image: grafana/loki:latest
     ports:
       - "3100:3100"
-    command: -config.file=/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yml
     volumes:
       - ./docker/loki/loki-config.yml:/etc/loki/local-config.yml
       - loki-data:/tmp/loki
