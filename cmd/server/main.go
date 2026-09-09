@@ -1,7 +1,6 @@
 package main
 
 import (
-	"strconv"
 	"context"
 	"database/sql"
 	"errors"
@@ -10,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -75,7 +75,7 @@ func setupDatabase(cfg *config.Config) (*sql.DB, func() error, error) {
 		return nil, nil, fmt.Errorf("invalid database port: %w", err)
 	}
 
-	db, err := otelsql.Open(dbDriver, dsn, 
+	db, err := otelsql.Open(dbDriver, dsn,
 		otelsql.WithAttributes(
 			semconv.DBSystemPostgreSQL,
 			semconv.DBName(cfg.Database.Name),
@@ -104,6 +104,7 @@ func setupDatabase(cfg *config.Config) (*sql.DB, func() error, error) {
 	return db, cleanUp, nil
 }
 
+//nolint:funlen // this is why thisfunction is long but it's the main entry point of the server
 func run(ctx context.Context, logger *slog.Logger) (err error) {
 	cfg, err := config.Load(logger)
 	if err != nil {
@@ -127,13 +128,10 @@ func run(ctx context.Context, logger *slog.Logger) (err error) {
 	}
 	userrepo := repository.NewUserRepository(db)
 	userservice := service.NewUserService(userrepo)
-
 	gamerepo := repository.NewGameRepository(db, logger)
 	gameService := service.NewGameService(gamerepo)
-
 	seatsrepo := repository.NewSeatsRepository(db)
 	seatsService := service.NewSeatsService(seatsrepo)
-
 	reservationRepo := repository.NewReservationRepository(db)
 	reservationService := service.NewReservationService(
 		reservationRepo,
@@ -167,14 +165,12 @@ func run(ctx context.Context, logger *slog.Logger) (err error) {
 			errCh <- fmt.Errorf("failed to start server: %w", errServ)
 		}
 	}()
-
 	// シグナルハンドリング
 	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) // 監視すべきシグナルを列挙する
 	defer stop()
-
 	var wg sync.WaitGroup
-
 	wg.Add(1)
+	//nolint: modernize // this is why we use a goroutine to handle the reservation expiration check
 	go func() {
 		defer wg.Done()
 		ticker := time.NewTicker(1 * time.Minute)

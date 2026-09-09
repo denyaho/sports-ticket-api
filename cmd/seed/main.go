@@ -230,7 +230,6 @@ func run(logger *slog.Logger) error {
 		dBcfg.Password,
 		dBcfg.Name,
 	)
-
 	db, err := sql.Open(dbDriver, dsn)
 	logger.Info("Connecting to database", "dsn", dsn)
 	if err != nil {
@@ -242,12 +241,10 @@ func run(logger *slog.Logger) error {
 			logger.Error("failed to close database connection", "error", err)
 		}
 	}()
-
 	err = _clearTables(context.Background(), db)
 	if err != nil {
 		return err
 	}
-
 	ctx := context.Background()
 	if err = _seedTeams(ctx, db); err != nil {
 		return err
