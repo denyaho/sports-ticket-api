@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"context"
 	"database/sql"
 	"errors"
@@ -69,12 +70,17 @@ func setupDatabase(cfg *config.Config) (*sql.DB, func() error, error) {
 		dBcfg.Name,
 	)
 
+	serverPort, err := strconv.Atoi(dBcfg.Port)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid database port: %w", err)
+	}
+
 	db, err := otelsql.Open(dbDriver, dsn, 
 		otelsql.WithAttributes(
 			semconv.DBSystemPostgreSQL,
 			semconv.DBName(cfg.Database.Name),
-			semconv.ServerAddreess(cfg.Database.Host),
-			semconv.ServerPort(cfg.Database.Port),
+			semconv.ServerAddress(cfg.Server.Host),
+			semconv.ServerPort(serverPort),
 		))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open database: %w", err)
@@ -168,7 +174,9 @@ func run(ctx context.Context, logger *slog.Logger) (err error) {
 
 	var wg sync.WaitGroup
 
-	wg.Go(func() {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
 		ticker := time.NewTicker(1 * time.Minute)
 		defer ticker.Stop()
 		for {
@@ -181,7 +189,7 @@ func run(ctx context.Context, logger *slog.Logger) (err error) {
 				return
 			}
 		}
-	})
+	}()
 	select {
 	case err = <-errCh:
 		return err
