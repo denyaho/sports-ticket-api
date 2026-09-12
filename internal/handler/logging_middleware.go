@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -57,12 +58,21 @@ func (h *Handler) Logging(next http.Handler) http.Handler {
 		holder := &RequestState{}
 		ctx := context.WithValue(r.Context(), requestStateKey, holder)
 
+		start := time.Now()
 		next.ServeHTTP(rww, r.WithContext(ctx))
+		duration := time.Since(start)
 
 		statusCode := rww.statusCode
 		err := holder.Err
-		userID := holder.UserID.String()
-
+		var userID string
+		if holder.UserID == uuid.Nil {
+			userID = "nil"
+		} else {
+			userID = holder.UserID.String()
+		}
+		h.logger.InfoContext(r.Context(), "Access log",
+			"duration_ms", duration.Milliseconds(),
+		)
 		switch {
 		case statusCode >= 400 && statusCode < 500:
 			h.warnLog(r, reqURL, statusCode, userID, hostIP, err)

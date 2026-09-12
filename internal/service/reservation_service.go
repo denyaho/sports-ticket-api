@@ -2,9 +2,8 @@ package service
 
 import (
 	"context"
-	"time"
-
 	"fmt"
+	"time"
 
 	"42tokyo-road-to-dena-server/internal/apperror"
 	"42tokyo-road-to-dena-server/internal/domain"
@@ -75,7 +74,6 @@ func (s *reservationService) ExpiredReservations(ctx context.Context) error {
 
 	defer span.End()
 	if err := s.repo.ExpiredReservations(ctx); err != nil {
-		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
@@ -85,11 +83,14 @@ func (s *reservationService) ExpiredReservations(ctx context.Context) error {
 func (s *reservationService) CancelReservation(ctx context.Context, reservationID, userID uuid.UUID) error {
 	ctx, span := tracer.Start(ctx, "ReservationService.CancelReservation")
 	defer span.End()
+	span.SetAttributes(
+		attribute.String("reservation.id", reservationID.String()),
+		attribute.String("user.id", userID.String()),
+	)
 
 	if err := s.repo.CancelReservation(ctx, reservationID, userID); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return err
+		span.SetStatus(codes.Error, "failed to cancel reservation")
+		return fmt.Errorf("failed to cancel reservation %w", err)
 	}
 	return nil
 }
@@ -121,7 +122,20 @@ func (s *reservationService) CreateReservation(
 
 	expiresAt := s.clock.Now().Add(s.holdTime)
 
-	return s.repo.CreateReservation(ctx, reqBody, userID, expiresAt)
+	span.SetAttributes(
+		attribute.String("user.id", userID.String()),
+		attribute.String("game.id", reqBody.GameID.String()),
+		attribute.String("reservation.expires_at", expiresAt.String()),
+		attribute.Int("reservation.total_seats", totalSeats),
+	)
+
+	reservation, err := s.repo.CreateReservation(ctx, reqBody, userID, expiresAt)
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to create reservation")
+		return nil, fmt.Errorf("failed to create reservation: %w", err)
+	}
+
+	return reservation, nil
 }
 
 func (s *reservationService) GetUserReservations(ctx context.Context, userID uuid.UUID) ([]*domain.Reservation, error) {
@@ -129,15 +143,14 @@ func (s *reservationService) GetUserReservations(ctx context.Context, userID uui
 	defer span.End()
 	reservations, err := s.repo.GetUserReservations(ctx, userID)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
+		span.SetStatus(codes.Error, "failed to get user reservations")
 		return nil, err
 	}
 	now := s.clock.Now()
 	for _, r := range reservations {
 		r.Status = r.EffectiveStatus(now)
 	}
-	return reservations, err
+	return reservations, nil
 }
 
 func (s *reservationService) GetReservationByID(
@@ -146,11 +159,22 @@ func (s *reservationService) GetReservationByID(
 ) (*domain.Reservation, error) {
 	ctx, span := tracer.Start(ctx, "ReservationService.GetReservationByID")
 	defer span.End()
+	span.SetAttributes(
+		attribute.String("user.id", userID.String()),
+		attribute.String("reservation.id", reservationID.String()),
+	)
+
 	reservation, err := s.repo.GetReservationByID(ctx, reservationID, userID)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
+		span.SetStatus(codes.Error, "failed to get reservation by ID")
+		resErr := fmt.Errorf(
+			"failed to get reservation by ID(ID=%s) for user(ID=%s): %w",
+			reservationID.String(),
+			userID.String(),
+			err,
+		)
+		span.RecordError(resErr)
+		return nil, resErr
 	}
 	return reservation, nil
 	// Removed redundant code as it is now handled above
@@ -162,11 +186,19 @@ func (s *reservationService) PurchaseReservation(
 ) (*domain.Reservation, error) {
 	ctx, span := tracer.Start(ctx, "ReservationService.PurchaseReservation")
 	defer span.End()
+	span.SetAttributes(
+		attribute.String("user.id", userID.String()),
+		attribute.String("reservation.id", reservationID.String()),
+	)
 	reservation, err := s.repo.PurchaseReservation(ctx, reservationID, userID)
 	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return nil, err
+		span.SetStatus(codes.Error, "failed to purchase reservation")
+		return nil, fmt.Errorf(
+			"failed to purchase reservation(ID=%s) by user(ID=%s): %w",
+			reservationID.String(),
+			userID.String(),
+			err,
+		)
 	}
 	return reservation, nil
 }

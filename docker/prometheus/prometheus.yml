@@ -7,3 +7,6 @@ scrape_configs:
       - targets: ['cadvisor:8080']
         labels:
           alias: 'cadvisor'
+  - job_name: 'otel-collector-internal'
+    static_configs:
+      - targets: ['otel-collector:8888']

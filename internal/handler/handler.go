@@ -100,7 +100,7 @@ func (h *Handler) Routes() http.Handler {
 		http.ServeFile(w, r, filepath.Join("docs", "swagger", "index.html"))
 	})
 
-	handler := otelhttp.NewHandler(h.Logging(mux), "/")
+	handler := h.Logging(otelhttp.NewHandler(mux, "/"))
 
 	return handler
 }
